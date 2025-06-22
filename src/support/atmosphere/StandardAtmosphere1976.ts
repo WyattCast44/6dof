@@ -5,6 +5,7 @@ import Celsius from "../temperature/Celsius";
 import NewtonsPerMetersSquared from "../pressure/NewtonsPerMetersSquared";
 import KilogramsPerMeterCubed from "../density/KilogramsPerMeterCubed";
 import Kelvin from "../temperature/Kelvin";
+import AtmosphereConditions from "./AtmosphereConditions";
 
 type Region = {
   start: number; // m
@@ -115,6 +116,24 @@ class StandardAtmosphere1976 extends AtmosphereModel {
     const region = this.getRegion(altitude);
     const temperature = this.calculateTemperatureAtAltitude(altitude, region);
     return this.calculateDensityAtAltitude(altitude, region, temperature);
+  }
+
+  getConditionsAtAltitude(altitude: Feet | Meters): AtmosphereConditions {
+    altitude = altitude instanceof Feet ? altitude.toMeters() : altitude;
+    const region = this.getRegion(altitude);
+    const temperature = this.calculateTemperatureAtAltitude(altitude, region);
+    const pressure = this.calculatePressureAtAltitude(
+      altitude,
+      region,
+      temperature
+    );
+    const density = this.calculateDensityAtAltitude(
+      altitude,
+      region,
+      temperature
+    );
+
+    return new AtmosphereConditions(altitude, temperature, pressure, density);
   }
 
   private getRegion(altitude: Meters): Region {

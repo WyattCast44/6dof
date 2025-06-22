@@ -2,11 +2,7 @@ import Celsius from "./Celsius";
 import Fahrenheit from "./Fahrenheit";
 
 abstract class Temperature {
-  public readonly value: number;
-
-  constructor(value: number) {
-    this.value = value;
-  }
+  constructor(public readonly value: number) {}
 
   abstract toFahrenheit(): any;
   abstract toCelsius(): any;
