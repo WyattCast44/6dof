@@ -1,47 +1,43 @@
+import EulerAngles from "../attitude/EulerAngles";
+import RotationalVelocities from "../attitude/RotationalVelocities";
+import Meters from "../length/Meters";
+import MetersPerSecond from "../velocity/MetersPerSecond";
+
 class StateVector {
-  /**
-   * Velocity components
-   */
-  // axial velocity components
-  public u_b_mps: number = 0;
-  // lateral velocity components
-  public v_b_mps: number = 0;
-  // vertical velocity components
-  public w_b_mps: number = 0;
+  // Position
+  public x_n_m: Meters;
+  public y_n_m: Meters;
+  public z_n_m: Meters;
 
-  /**
-   * Angular velocity components
-   */
-  // roll angular velocity
-  public p_b_radps: number = 0;
-  // pitch angular velocity
-  public q_b_radps: number = 0;
-  // yaw angular velocity
-  public r_b_radps: number = 0;
+  // Velocity
+  public u_b_mps: MetersPerSecond;
+  public v_b_mps: MetersPerSecond;
+  public w_b_mps: MetersPerSecond;
 
-  /**
-   * Euler angles
-   */
-  // roll angle
-  public phi_rad: number = 0;
-  // pitch angle
-  public theta_rad: number = 0;
-  // yaw angle
-  public psi_rad: number = 0;
+  // Euler angles
+  public angles: EulerAngles;
 
-  /**
-   * Position components
-   */
-  // x-axis position
-  public x_n_m: number = 0;
-  // y-axis position
-  public y_n_m: number = 0;
-  // z-axis position
-  public z_n_m: number = 0;
+  // Rotational velocities
+  public rates: RotationalVelocities;
 
-  constructor() //
-  {
-    //
+  constructor(
+    x_n_m: Meters = new Meters(0),
+    y_n_m: Meters = new Meters(0),
+    z_n_m: Meters = new Meters(0),
+    u_b_mps: MetersPerSecond = new MetersPerSecond(0),
+    v_b_mps: MetersPerSecond = new MetersPerSecond(0),
+    w_b_mps: MetersPerSecond = new MetersPerSecond(0),
+    angles: EulerAngles = new EulerAngles(0, 0, 0),
+    rates: RotationalVelocities = new RotationalVelocities(0, 0, 0)
+  ) {
+    this.x_n_m = x_n_m;
+    this.y_n_m = y_n_m;
+    this.z_n_m = z_n_m;
+    this.u_b_mps = u_b_mps;
+    this.v_b_mps = v_b_mps;
+    this.w_b_mps = w_b_mps;
+    this.angles = angles;
+    this.rates = rates;
   }
 }
 

@@ -62,5 +62,12 @@
  * n = z_b component of aerodynamic moment, excluding thrust (yawing moment)
  * 
  * 
+ * The euler angle forumations (system of 12 first order differential equations) can be numerically integrated to yield the following as functions of time:
+ * - position vector
+ * - euler angles
+ * - translational velocities
+ * - rotational velocities
+ * 
+ * Notes these are non-linear differential equations.
  * 
  */

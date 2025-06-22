@@ -10,6 +10,18 @@ import AircraftDynamicsModel from "./support/aircraft/AircraftDynamicsModel";
 import Integrator from "./support/numerical/Integrator";
 import StateVector from "./support/numerical/StateVector";
 import LightFixedWing from "./support/aircraft/LightFixedWing";
+import MetersPerSecond from "./support/velocity/MetersPerSecond";
+import Meters from "./support/length/Meters";
+import EulerAngles from "./support/attitude/EulerAngles";
+import RotationalVelocities from "./support/attitude/RotationalVelocities";
+import { testDCMTransformations } from "./support/transforms/DCMTest";
+
+/**
+ * Test DCM transformations
+ */
+console.log("Testing DCM transformations...");
+testDCMTransformations();
+console.log("");
 
 /**
  * Build the wind model
@@ -30,24 +42,17 @@ let environment = new Environment(gravityModel, atmosphereModel, windModel);
  * Build the aircraft and dynamics model
  */
 let aircraft = new LightFixedWing();
+let initialAircraftState = new StateVector(
+  new Meters(0), // North position
+  new Meters(0), // East position
+  new Meters(-1000), // Down position
+  new MetersPerSecond(50), // Forward velocity
+  new MetersPerSecond(0), // Lateral velocity
+  new MetersPerSecond(0), // Vertical velocity
+  new EulerAngles(0, 0, 0), // Euler angles
+  new RotationalVelocities(0, 0, 0) // Rotational velocities
+);
 let aircraftDynamicsModel = new AircraftDynamicsModel(aircraft, environment);
-
-/**
- * Create initial aircraft state (level flight at 1000m altitude)
- */
-let initialState = new StateVector();
-initialState.x_n_m = 0;           // North position
-initialState.y_n_m = 0;           // East position  
-initialState.z_n_m = -1000;       // Down position (negative for altitude)
-initialState.u_b_mps = 50;        // Forward velocity (50 m/s ≈ 97 knots)
-initialState.v_b_mps = 0;         // Lateral velocity
-initialState.w_b_mps = 0;         // Vertical velocity
-initialState.phi_rad = 0;         // Roll angle (level flight)
-initialState.theta_rad = 0;       // Pitch angle (level flight)
-initialState.psi_rad = 0;         // Yaw angle (heading North)
-initialState.p_b_radps = -0.0174533;       // Roll rate 1 degree per second
-initialState.q_b_radps = 0;       // Pitch rate
-initialState.r_b_radps = 0;       // Yaw rate
 
 /**
  * Create integrator and run simulation
@@ -63,7 +68,7 @@ console.log("=== 6DOF Aircraft Simulation ===");
 console.log("");
 
 // Run simulation
-let currentState = initialState;
+let currentState = initialAircraftState;
 let currentTime = 0;
 
 while (currentTime <= simulationTime) {
@@ -73,10 +78,10 @@ while (currentTime <= simulationTime) {
 
   if (shouldOutput) {
     console.log(`Time: ${currentTime.toFixed(1)}s`);
-    console.log(`Position: N=${currentState.x_n_m.toFixed(0)}m, E=${currentState.y_n_m.toFixed(0)}m, Alt=${(-currentState.z_n_m).toFixed(0)}m`);
-    console.log(`Velocity: u=${currentState.u_b_mps.toFixed(1)}m/s, v=${currentState.v_b_mps.toFixed(1)}m/s, w=${currentState.w_b_mps.toFixed(1)}m/s`);
-    console.log(`Attitude: φ=${(currentState.phi_rad * 180 / Math.PI).toFixed(1)}°, θ=${(currentState.theta_rad * 180 / Math.PI).toFixed(1)}°, ψ=${(currentState.psi_rad * 180 / Math.PI).toFixed(1)}°`);
-    console.log(`Angular Rates: p=${(currentState.p_b_radps * 180 / Math.PI).toFixed(1)}°/s, q=${(currentState.q_b_radps * 180 / Math.PI).toFixed(1)}°/s, r=${(currentState.r_b_radps * 180 / Math.PI).toFixed(1)}°/s`);
+    console.log(`Position: N=${currentState.x_n_m.value.toFixed(0)}m, E=${currentState.y_n_m.value.toFixed(0)}m, Alt=${(-currentState.z_n_m.value).toFixed(0)}m`);
+    console.log(`Velocity: u=${currentState.u_b_mps.value.toFixed(1)}m/s, v=${currentState.v_b_mps.value.toFixed(1)}m/s, w=${currentState.w_b_mps.value.toFixed(1)}m/s`);
+    console.log(`Attitude: φ=${(currentState.angles.bank_phi.value * 180 / Math.PI).toFixed(1)}°, θ=${(currentState.angles.elevation_theta.value * 180 / Math.PI).toFixed(1)}°, ψ=${(currentState.angles.azimuth_psi.value * 180 / Math.PI).toFixed(1)}°`);
+    console.log(`Angular Rates: p=${(currentState.rates.roll_p.value * 180 / Math.PI).toFixed(1)}°/s, q=${(currentState.rates.pitch_q.value * 180 / Math.PI).toFixed(1)}°/s, r=${(currentState.rates.yaw_r.value * 180 / Math.PI).toFixed(1)}°/s`);
     console.log("---");
   }
   

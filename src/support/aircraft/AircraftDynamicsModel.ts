@@ -2,6 +2,11 @@ import AircraftProperties from "./AircraftProperties";
 import Environment from "../enviroment/Enviroment";
 import StateVector from "../numerical/StateVector";
 import Meters from "../length/Meters";
+import MetersPerSecond from "../velocity/MetersPerSecond";
+import RadiansPerSecond from "../rates/RadiansPerSecond";
+import EulerAngles from "../attitude/EulerAngles";
+import NedToBodyDCM from "../transforms/NedToBodyDCM";
+import BodyToNedDCM from "../transforms/BodyToNedDCM";
 
 /**
  * AircraftDynamicsModel - 6-Degrees of Freedom Aircraft Dynamics Model
@@ -12,7 +17,7 @@ import Meters from "../length/Meters";
  * 
  * The model currently implements:
  * - Translational motion equations (force equations)
- * - Gravity resolution from navigation to body frame
+ * - Gravity resolution from navigation to body frame using DCMs
  * - Basic rotational motion framework (moments set to zero)
  * 
  * Future enhancements will include:
@@ -40,34 +45,38 @@ class AircraftDynamicsModel {
     ): StateVector {
         const derivatives = new StateVector();
 
-        // 1. Resolve gravity in body frame
+        // 1. Resolve gravity in body frame using DCM
         const gravityBody = this.resolveGravityInBodyFrame(currentState);
 
         // 2. Calculate translational accelerations (force equations)
-        derivatives.u_b_mps = this.calculateAxialAcceleration(currentState, gravityBody);
-        derivatives.v_b_mps = this.calculateLateralAcceleration(currentState, gravityBody);
-        derivatives.w_b_mps = this.calculateNormalAcceleration(currentState, gravityBody);
+        derivatives.u_b_mps = new MetersPerSecond(this.calculateAxialAcceleration(currentState, gravityBody));
+        derivatives.v_b_mps = new MetersPerSecond(this.calculateLateralAcceleration(currentState, gravityBody));
+        derivatives.w_b_mps = new MetersPerSecond(this.calculateNormalAcceleration(currentState, gravityBody));
 
         // 3. Calculate angular accelerations (moment equations) - currently zero
-        derivatives.p_b_radps = 0; // Roll acceleration
-        derivatives.q_b_radps = 0; // Pitch acceleration  
-        derivatives.r_b_radps = 0; // Yaw acceleration
+        derivatives.rates.roll_p = new RadiansPerSecond(0); // Roll acceleration
+        derivatives.rates.pitch_q = new RadiansPerSecond(0); // Pitch acceleration  
+        derivatives.rates.yaw_r = new RadiansPerSecond(0); // Yaw acceleration
 
-        // 4. Calculate position rates (kinematic equations)
-        derivatives.x_n_m = this.calculateNorthVelocity(currentState);
-        derivatives.y_n_m = this.calculateEastVelocity(currentState);
-        derivatives.z_n_m = this.calculateDownVelocity(currentState);
+        // 4. Calculate position rates (kinematic equations) using DCM
+        const velocityNed = this.calculateVelocityInNedFrame(currentState);
+        derivatives.x_n_m = new Meters(velocityNed[0]); // North velocity
+        derivatives.y_n_m = new Meters(velocityNed[1]); // East velocity
+        derivatives.z_n_m = new Meters(velocityNed[2]); // Down velocity
 
         // 5. Calculate attitude rates (kinematic equations)
-        derivatives.phi_rad = currentState.p_b_radps;   // Roll rate
-        derivatives.theta_rad = currentState.q_b_radps; // Pitch rate
-        derivatives.psi_rad = currentState.r_b_radps;   // Yaw rate
+        // The attitude rates are the angular velocities (p, q, r)
+        derivatives.angles = new EulerAngles(
+            currentState.rates.roll_p.value,   // Roll rate (p)
+            currentState.rates.pitch_q.value,  // Pitch rate (q)
+            currentState.rates.yaw_r.value     // Yaw rate (r)
+        );
 
         return derivatives;
     }
 
     /**
-     * Resolve gravity from navigation frame to body frame
+     * Resolve gravity from navigation frame to body frame using DCM
      */
     private resolveGravityInBodyFrame(state: StateVector): {
         x: number;
@@ -75,15 +84,30 @@ class AircraftDynamicsModel {
         z: number;
     } {
         // Get gravity at current altitude
-        const altitude = new Meters(-state.z_n_m); // Convert to positive altitude
+        const altitude = new Meters(-state.z_n_m.value); // Convert to positive altitude
         const gravityMagnitude = this.environment.gravityModel.getGravityAtAltitude(altitude).value;
 
-        // Transform gravity from navigation frame (downward) to body frame
-        const gx_b = -Math.sin(state.theta_rad) * gravityMagnitude;
-        const gy_b = Math.sin(state.phi_rad) * Math.cos(state.theta_rad) * gravityMagnitude;
-        const gz_b = Math.cos(state.phi_rad) * Math.cos(state.theta_rad) * gravityMagnitude;
+        // Use DCM to transform gravity from NED to body frame
+        const nedToBodyDCM = new NedToBodyDCM(state.angles);
+        const gravityBody = nedToBodyDCM.transformGravity(gravityMagnitude);
 
-        return { x: gx_b, y: gy_b, z: gz_b };
+        return { 
+            x: gravityBody[0], 
+            y: gravityBody[1], 
+            z: gravityBody[2] 
+        };
+    }
+
+    /**
+     * Calculate velocity in NED frame using DCM
+     */
+    private calculateVelocityInNedFrame(state: StateVector): [number, number, number] {
+        const bodyToNedDCM = new BodyToNedDCM(state.angles);
+        return bodyToNedDCM.transformVelocity(
+            state.u_b_mps.value,
+            state.v_b_mps.value,
+            state.w_b_mps.value
+        );
     }
 
     /**
@@ -99,8 +123,8 @@ class AircraftDynamicsModel {
         
         return (fx / mass) + 
                gravityBody.x + 
-               state.r_b_radps * state.v_b_mps - 
-               state.q_b_radps * state.w_b_mps;
+               state.rates.yaw_r.value * state.v_b_mps.value - 
+               state.rates.pitch_q.value * state.w_b_mps.value;
     }
 
     /**
@@ -116,8 +140,8 @@ class AircraftDynamicsModel {
         
         return (fy / mass) + 
                gravityBody.y + 
-               state.p_b_radps * state.w_b_mps - 
-               state.r_b_radps * state.u_b_mps;
+               state.rates.roll_p.value * state.w_b_mps.value - 
+               state.rates.yaw_r.value * state.u_b_mps.value;
     }
 
     /**
@@ -133,57 +157,8 @@ class AircraftDynamicsModel {
         
         return (fz / mass) + 
                gravityBody.z + 
-               state.q_b_radps * state.u_b_mps - 
-               state.p_b_radps * state.v_b_mps;
-    }
-
-    /**
-     * Calculate North velocity component in navigation frame
-     */
-    private calculateNorthVelocity(state: StateVector): number {
-        // Transform body velocities to navigation frame
-        const cosTheta = Math.cos(state.theta_rad);
-        const sinTheta = Math.sin(state.theta_rad);
-        const cosPsi = Math.cos(state.psi_rad);
-        const sinPsi = Math.sin(state.psi_rad);
-        const cosPhi = Math.cos(state.phi_rad);
-        const sinPhi = Math.sin(state.phi_rad);
-
-        return state.u_b_mps * (cosTheta * cosPsi) +
-               state.v_b_mps * (sinPhi * sinTheta * cosPsi - cosPhi * sinPsi) +
-               state.w_b_mps * (cosPhi * sinTheta * cosPsi + sinPhi * sinPsi);
-    }
-
-    /**
-     * Calculate East velocity component in navigation frame
-     */
-    private calculateEastVelocity(state: StateVector): number {
-        // Transform body velocities to navigation frame
-        const cosTheta = Math.cos(state.theta_rad);
-        const sinTheta = Math.sin(state.theta_rad);
-        const cosPsi = Math.cos(state.psi_rad);
-        const sinPsi = Math.sin(state.psi_rad);
-        const cosPhi = Math.cos(state.phi_rad);
-        const sinPhi = Math.sin(state.phi_rad);
-
-        return state.u_b_mps * (cosTheta * sinPsi) +
-               state.v_b_mps * (sinPhi * sinTheta * sinPsi + cosPhi * cosPsi) +
-               state.w_b_mps * (cosPhi * sinTheta * sinPsi - sinPhi * cosPsi);
-    }
-
-    /**
-     * Calculate Down velocity component in navigation frame
-     */
-    private calculateDownVelocity(state: StateVector): number {
-        // Transform body velocities to navigation frame
-        const cosTheta = Math.cos(state.theta_rad);
-        const sinTheta = Math.sin(state.theta_rad);
-        const cosPhi = Math.cos(state.phi_rad);
-        const sinPhi = Math.sin(state.phi_rad);
-
-        return state.u_b_mps * (-sinTheta) +
-               state.v_b_mps * (sinPhi * cosTheta) +
-               state.w_b_mps * (cosPhi * cosTheta);
+               state.rates.pitch_q.value * state.u_b_mps.value - 
+               state.rates.roll_p.value * state.v_b_mps.value;
     }
 }
 
