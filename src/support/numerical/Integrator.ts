@@ -1,8 +1,11 @@
 import AircraftDynamicsModel from "../aircraft/AircraftDynamicsModel";
 import Radians from "../angles/Radians";
 import EulerAngles from "../attitude/EulerAngles";
+import RotationalVelocities from "../attitude/RotationalVelocities";
 import Meters from "../length/Meters";
 import RadiansPerSecond from "../rates/RadiansPerSecond";
+import PositionVector from "../vectors/PositionVector";
+import VelocityVector from "../vectors/VelocityVector";
 import MetersPerSecond from "../velocity/MetersPerSecond";
 import StateVector from "./StateVector";
 
@@ -38,19 +41,25 @@ class Integrator {
     const newState = new StateVector();
     
     // Integrate translational velocities (Euler method)
-    newState.u_b_mps = new MetersPerSecond(currentState.u_b_mps.value + derivatives.u_b_mps.value * timeStep);
-    newState.v_b_mps = new MetersPerSecond(currentState.v_b_mps.value + derivatives.v_b_mps.value * timeStep);
-    newState.w_b_mps = new MetersPerSecond(currentState.w_b_mps.value + derivatives.w_b_mps.value * timeStep);
+    newState.velocity = new VelocityVector(
+      new MetersPerSecond(currentState.velocity.u.value + derivatives.velocity.u.value * timeStep),
+      new MetersPerSecond(currentState.velocity.v.value + derivatives.velocity.v.value * timeStep),
+      new MetersPerSecond(currentState.velocity.w.value + derivatives.velocity.w.value * timeStep)
+    );
     
     // Integrate angular velocities
-    newState.rates.roll_p = new RadiansPerSecond(currentState.rates.roll_p.value + derivatives.rates.roll_p.value * timeStep);
-    newState.rates.pitch_q = new RadiansPerSecond(currentState.rates.pitch_q.value + derivatives.rates.pitch_q.value * timeStep);
-    newState.rates.yaw_r = new RadiansPerSecond(currentState.rates.yaw_r.value + derivatives.rates.yaw_r.value * timeStep);
+    newState.rates = new RotationalVelocities(
+      new RadiansPerSecond(currentState.rates.roll_p.value + derivatives.rates.roll_p.value * timeStep),
+      new RadiansPerSecond(currentState.rates.pitch_q.value + derivatives.rates.pitch_q.value * timeStep),
+      new RadiansPerSecond(currentState.rates.yaw_r.value + derivatives.rates.yaw_r.value * timeStep)
+    );
     
     // Integrate position
-    newState.x_n_m = new Meters(currentState.x_n_m.value + derivatives.x_n_m.value * timeStep);
-    newState.y_n_m = new Meters(currentState.y_n_m.value + derivatives.y_n_m.value * timeStep);
-    newState.z_n_m = new Meters(currentState.z_n_m.value + derivatives.z_n_m.value * timeStep);
+    newState.position = new PositionVector(
+      new Meters(currentState.position.x.value + derivatives.position.x.value * timeStep),
+      new Meters(currentState.position.y.value + derivatives.position.y.value * timeStep),
+      new Meters(currentState.position.z.value + derivatives.position.z.value * timeStep)
+    );
     
     // Integrate attitude (Euler angles)
     newState.angles = new EulerAngles(

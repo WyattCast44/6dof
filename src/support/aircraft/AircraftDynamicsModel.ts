@@ -5,8 +5,11 @@ import Meters from "../length/Meters";
 import MetersPerSecond from "../velocity/MetersPerSecond";
 import RadiansPerSecond from "../rates/RadiansPerSecond";
 import EulerAngles from "../attitude/EulerAngles";
-import NedToBodyDCM from "../transforms/NedToBodyDCM";
-import BodyToNedDCM from "../transforms/BodyToNedDCM";
+import BodyNedDCM from "../transforms/BodyNedDCM";
+import NedVector from "../vectors/NedVector";
+import BodyVector from "../vectors/BodyVector";
+import VelocityVector from "../vectors/VelocityVector";
+import PositionVector from "../vectors/PositionVector";
 
 /**
  * AircraftDynamicsModel - 6-Degrees of Freedom Aircraft Dynamics Model
@@ -49,9 +52,11 @@ class AircraftDynamicsModel {
         const gravityBody = this.resolveGravityInBodyFrame(currentState);
 
         // 2. Calculate translational accelerations (force equations)
-        derivatives.u_b_mps = new MetersPerSecond(this.calculateAxialAcceleration(currentState, gravityBody));
-        derivatives.v_b_mps = new MetersPerSecond(this.calculateLateralAcceleration(currentState, gravityBody));
-        derivatives.w_b_mps = new MetersPerSecond(this.calculateNormalAcceleration(currentState, gravityBody));
+        derivatives.velocity = new VelocityVector(
+            new MetersPerSecond(this.calculateAxialAcceleration(currentState, gravityBody)),
+            new MetersPerSecond(this.calculateLateralAcceleration(currentState, gravityBody)),
+            new MetersPerSecond(this.calculateNormalAcceleration(currentState, gravityBody))
+        );
 
         // 3. Calculate angular accelerations (moment equations) - currently zero
         derivatives.rates.roll_p = new RadiansPerSecond(0); // Roll acceleration
@@ -60,9 +65,11 @@ class AircraftDynamicsModel {
 
         // 4. Calculate position rates (kinematic equations) using DCM
         const velocityNed = this.calculateVelocityInNedFrame(currentState);
-        derivatives.x_n_m = new Meters(velocityNed[0]); // North velocity
-        derivatives.y_n_m = new Meters(velocityNed[1]); // East velocity
-        derivatives.z_n_m = new Meters(velocityNed[2]); // Down velocity
+        derivatives.position = new PositionVector(
+            new Meters(velocityNed.north), // North velocity
+            new Meters(velocityNed.east), // East velocity
+            new Meters(velocityNed.down) // Down velocity
+        );
 
         // 5. Calculate attitude rates (kinematic equations)
         // The attitude rates are the angular velocities (p, q, r)
@@ -84,30 +91,27 @@ class AircraftDynamicsModel {
         z: number;
     } {
         // Get gravity at current altitude
-        const altitude = new Meters(-state.z_n_m.value); // Convert to positive altitude
+        const altitude = new Meters(-state.position.z.value); // Convert to positive altitude
         const gravityMagnitude = this.environment.gravityModel.getGravityAtAltitude(altitude).value;
 
         // Use DCM to transform gravity from NED to body frame
-        const nedToBodyDCM = new NedToBodyDCM(state.angles);
-        const gravityBody = nedToBodyDCM.transformGravity(gravityMagnitude);
+        const nedToBodyDCM = new BodyNedDCM(state.angles);
+        const gravityBody = nedToBodyDCM.transformToBody(new NedVector(0, 0, gravityMagnitude));
 
         return { 
-            x: gravityBody[0], 
-            y: gravityBody[1], 
-            z: gravityBody[2] 
+            x: gravityBody.x, 
+            y: gravityBody.y, 
+            z: gravityBody.z 
         };
     }
 
     /**
      * Calculate velocity in NED frame using DCM
      */
-    private calculateVelocityInNedFrame(state: StateVector): [number, number, number] {
-        const bodyToNedDCM = new BodyToNedDCM(state.angles);
-        return bodyToNedDCM.transformVelocity(
-            state.u_b_mps.value,
-            state.v_b_mps.value,
-            state.w_b_mps.value
-        );
+    private calculateVelocityInNedFrame(state: StateVector): NedVector {
+        const bodyToNedDCM = new BodyNedDCM(state.angles);
+
+        return bodyToNedDCM.transformFromBody(new BodyVector(state.velocity.u.value, state.velocity.v.value, state.velocity.w.value));
     }
 
     /**
@@ -123,8 +127,8 @@ class AircraftDynamicsModel {
         
         return (fx / mass) + 
                gravityBody.x + 
-               state.rates.yaw_r.value * state.v_b_mps.value - 
-               state.rates.pitch_q.value * state.w_b_mps.value;
+               state.rates.yaw_r.value * state.velocity.v.value - 
+               state.rates.pitch_q.value * state.velocity.w.value;
     }
 
     /**
@@ -140,8 +144,8 @@ class AircraftDynamicsModel {
         
         return (fy / mass) + 
                gravityBody.y + 
-               state.rates.roll_p.value * state.w_b_mps.value - 
-               state.rates.yaw_r.value * state.u_b_mps.value;
+               state.rates.roll_p.value * state.velocity.w.value - 
+               state.rates.yaw_r.value * state.velocity.u.value;
     }
 
     /**
@@ -157,8 +161,8 @@ class AircraftDynamicsModel {
         
         return (fz / mass) + 
                gravityBody.z + 
-               state.rates.pitch_q.value * state.u_b_mps.value - 
-               state.rates.roll_p.value * state.v_b_mps.value;
+               state.rates.pitch_q.value * state.velocity.u.value - 
+               state.rates.roll_p.value * state.velocity.v.value;
     }
 }
 

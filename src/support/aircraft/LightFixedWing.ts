@@ -4,6 +4,11 @@ import Kilograms from "../mass/Kilograms";
 import KilogramsMetersSquared from "../moments/KilogramsMetersSquared";
 import AircraftProperties from "./AircraftProperties";
 
+/**
+ * Modeled after an F-16 from the source below:
+ * 
+ * @source AIRCRAFT CONTROL AND SIMULATION, by Stevens and Lewis, third edition, Appendix A
+ */
 class LightFixedWing extends AircraftProperties {
   constructor(
     mass: Kilograms = new Kilograms(9300),

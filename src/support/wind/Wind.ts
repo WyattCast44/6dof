@@ -4,13 +4,10 @@ import Knots from "../velocity/Knots";
 class Wind {
   public readonly speed: Knots;
   public readonly direction: CardinalDegree;
-
-  constructor(
-    speed: number | Knots,
-    direction: number | CardinalDegree
-  ) {
-    this.speed = speed instanceof Knots ? speed : new Knots(speed);
-    this.direction = direction instanceof CardinalDegree ? direction : new CardinalDegree(direction);
+  
+  constructor(props: { speed: Knots|number, direction: CardinalDegree|number }) {
+    this.speed = props.speed instanceof Knots ? props.speed : new Knots(props.speed);
+    this.direction = props.direction instanceof CardinalDegree ? props.direction : new CardinalDegree(props.direction);
   }
 }
 

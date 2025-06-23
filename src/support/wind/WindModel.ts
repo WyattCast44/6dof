@@ -1,5 +1,5 @@
+import type Altitude from "../altitude/Altitude";
 import CardinalDegree from "../angles/CardinalDegree";
-import Feet from "../length/Feet";
 import Meters from "../length/Meters";
 import Knots from "../velocity/Knots";
 import Wind from "./Wind";
@@ -11,15 +11,9 @@ class WindModel {
     this.altitudes = new Map();
   }
 
-  addAltitude(altitude: Feet | Meters, wind: Wind) {
-    // the altitude given can be in feet or meters
-    // but we need to store it as meters in the map
-    // so we need to convert the altitude to meters
-    const altitudeInMeters =
-      altitude instanceof Feet ? altitude.toMeters() : altitude;
-
+  addAltitude(altitude: Altitude, wind: Wind) {
     // we need to store the wind at the altitude in the map
-    this.altitudes.set(altitudeInMeters.value, wind);
+    this.altitudes.set(altitude.value.value, wind);
 
     this.resortAltitudes();
   }
@@ -36,9 +30,8 @@ class WindModel {
     this.altitudes = new Map([...this.altitudes].sort((a, b) => a[0] - b[0]));
   }
 
-  getWindAtAltitude(altitude: Feet | Meters): Wind {
-    let altitudeInMeters =
-      altitude instanceof Feet ? altitude.toMeters() : altitude;
+  getWindAtAltitude(altitude: Altitude): Wind {
+    let altitudeInMeters = altitude.value;
 
     // ensure that the altitude is positive
     if (altitudeInMeters.value < 0) {
@@ -47,7 +40,7 @@ class WindModel {
 
     // No wind data available
     if (this.altitudes.size === 0) {
-      return new Wind(new Knots(0), new CardinalDegree(0));
+      return new Wind({ speed: new Knots(0), direction: new CardinalDegree(0) });
     }
 
     const altitudeArray = Array.from(this.altitudes.entries());
@@ -72,7 +65,7 @@ class WindModel {
     }
 
     // Find the altitude range for interpolation
-    const range = this.findAltitudeRange(altitudeInMeters.value);
+    const range = this.findAltitudeRange(altitudeInMeters);
     if (range) {
       const [wind1, wind2, alt1, alt2] = range;
       const ratio = (altitudeInMeters.value - alt1) / (alt2 - alt1);
@@ -84,7 +77,7 @@ class WindModel {
   }
 
   private findAltitudeRange(
-    targetAltitude: number
+    targetAltitude: Meters
   ): [Wind, Wind, number, number] | null {
     const altitudeArray = Array.from(this.altitudes.entries());
 
@@ -96,7 +89,7 @@ class WindModel {
       const mid = Math.floor((left + right) / 2);
       const midAltitude = altitudeArray[mid][0];
 
-      if (targetAltitude < midAltitude) {
+      if (targetAltitude.value < midAltitude) {
         right = mid;
       } else {
         left = mid;
@@ -131,7 +124,7 @@ class WindModel {
         : new CardinalDegree(wind2.direction);
     const interpolatedDirection = this.interpolateDirection(dir1, dir2, ratio);
 
-    return new Wind(new Knots(interpolatedSpeed), interpolatedDirection);
+    return new Wind({ speed: new Knots(interpolatedSpeed), direction: interpolatedDirection });
   }
 
   private interpolateDirection(
@@ -178,7 +171,7 @@ class WindModel {
         ? lowestWind.direction
         : new CardinalDegree(lowestWind.direction);
 
-    return new Wind(new Knots(targetSpeed), direction);
+    return new Wind({ speed: new Knots(targetSpeed), direction: direction });
   }
 
   getMinAltitude(): Meters {

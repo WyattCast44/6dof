@@ -71,3 +71,36 @@
  * Notes these are non-linear differential equations.
  * 
  */
+
+import EulerAngles from "./support/attitude/EulerAngles";
+import BodyNedDCM from "./support/transforms/BodyNedDCM";
+import BodyVector from "./support/vectors/BodyVector";
+import Radians from "./support/angles/Radians";
+
+console.log("Testing DCM with zero Euler angles...");
+
+// Test DCM with zero Euler angles
+const zeroAngles = new EulerAngles(
+  new Radians(0), // phi (roll)
+  new Radians(0), // theta (pitch) 
+  new Radians(0)  // psi (yaw)
+);
+
+const dcm = new BodyNedDCM(zeroAngles);
+
+console.log("DCM Matrix with zero angles:");
+const matrix = dcm.getMatrix();
+console.log(matrix);
+
+// Test velocity transformation
+const bodyVelocity = new BodyVector(50, 0, 0); // 50 m/s forward
+const nedVelocity = dcm.transformFromBody(bodyVelocity);
+
+console.log("\nBody velocity:", { x: bodyVelocity.x, y: bodyVelocity.y, z: bodyVelocity.z });
+console.log("NED velocity:", { north: nedVelocity.north, east: nedVelocity.east, down: nedVelocity.down });
+
+// Test the reverse transformation
+const backToBody = dcm.transformToBody(nedVelocity);
+console.log("Back to body:", { x: backToBody.x, y: backToBody.y, z: backToBody.z });
+
+console.log("\nTest complete!");
