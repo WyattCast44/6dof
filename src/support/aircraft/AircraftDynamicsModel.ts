@@ -48,6 +48,8 @@ class AircraftDynamicsModel {
     ): StateVector {
         const derivatives = new StateVector();
 
+        console.debug("Calculating state derivatives at time", time);
+
         // 1. Resolve gravity in body frame using DCM
         const gravityBody = this.resolveGravityInBodyFrame(currentState);
 

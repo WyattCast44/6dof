@@ -18,6 +18,7 @@ import Feet from "./support/length/Feet";
 import PositionVector from "./support/vectors/PositionVector";
 import VelocityVector from "./support/vectors/VelocityVector";
 import Simulation from "./support/sim/Simulation";
+import Seconds from "./support/time/Seconds";
 
 /**
  * Build the wind model
@@ -50,7 +51,11 @@ let aircraft = new LightFixedWing();
 
 let initialAircraftState = new StateVector(
   new PositionVector(new Meters(0), new Meters(0), new Meters(-1000)), // start at 0, 0, 1000 m above sea level
-  new VelocityVector(new MetersPerSecond(50), new MetersPerSecond(0), new MetersPerSecond(0)), // start at 50 m/s forward, 0 lateral and vertical velocity
+  new VelocityVector(
+    new MetersPerSecond(50),
+    new MetersPerSecond(0),
+    new MetersPerSecond(0)
+  ), // start at 50 m/s forward, 0 lateral and vertical velocity
   new EulerAngles(0, 0, 0), // start at 0, 0, 0 euler angles
   new RotationalVelocities(0, 0, 0) // start at 0, 0, 0 rotational velocities
 );
@@ -63,9 +68,9 @@ let aircraftDynamicsModel = new AircraftDynamicsModel(aircraft, environment);
 let integrator = new Integrator(aircraftDynamicsModel);
 
 let simulation = new Simulation({
-  timeStep: 1,
-  totalTime: 10,
-  outputInterval: 1,
+  timeStep: new Seconds(1),
+  totalTime: new Seconds(10),
+  outputInterval: new Seconds(1),
   initialState: initialAircraftState,
   integrator,
 });

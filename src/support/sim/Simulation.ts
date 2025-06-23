@@ -1,10 +1,11 @@
 import type Integrator from "../numerical/Integrator";
 import type StateVector from "../numerical/StateVector";
+import Seconds from "../time/Seconds";
 
 class Simulation {
-  private timeStep: number;
-  private totalTime: number;
-  private outputInterval: number;
+  private timeStep: Seconds;
+  private totalTime: Seconds;
+  private outputInterval: Seconds;
   private currentTime: number = 0;
 
   private currentState: StateVector | null = null;
@@ -18,9 +19,9 @@ class Simulation {
     initialState,
     integrator,
   }: {
-    timeStep: number;
-    totalTime: number;
-    outputInterval: number;
+    timeStep: Seconds;
+    totalTime: Seconds;
+    outputInterval: Seconds;
     initialState: StateVector;
     integrator: Integrator;
   }) {
@@ -35,9 +36,9 @@ class Simulation {
   run() {
     this.printInitBanner();
 
-    while (this.currentTime <= this.totalTime) {
+    while (this.currentTime <= this.totalTime.value) {
       this.loop(this.currentTime);
-      this.currentTime += this.timeStep;
+      this.currentTime += this.timeStep.value;
     }
 
     this.printFinalBanner();
@@ -90,11 +91,11 @@ class Simulation {
     console.log(`Attitude: φ=${phi}°, θ=${theta}°, ψ=${psi}°`);
     console.log(`Angular Rates: p=${p}°/s, q=${q}°/s, r=${r}°/s`);
 
-    if (this.currentTime < this.totalTime) {
+    if (this.currentTime < this.totalTime.value) {
       this.currentState = this.integrator.integrate(
         this.currentState,
         this.currentTime,
-        this.timeStep
+        this.timeStep.value
       );
     }
   }
@@ -110,12 +111,12 @@ class Simulation {
 
   private shouldOutput(currentTime: number): boolean {
     // Check if current time is close to an output interval
-    const remainder = currentTime % this.outputInterval;
-    const tolerance = this.timeStep / 2; // Use half the time step as tolerance
+    const remainder = currentTime % this.outputInterval.value;
+    const tolerance = this.timeStep.value / 2; // Use half the time step as tolerance
 
     return (
       Math.abs(remainder) <= tolerance ||
-      Math.abs(remainder - this.outputInterval) <= tolerance
+      Math.abs(remainder - this.outputInterval.value) <= tolerance
     );
   }
 }
