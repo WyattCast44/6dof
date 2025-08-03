@@ -23,6 +23,12 @@ import RadiansPerSecond from "./support/rates/RadiansPerSecond";
 
 /**
  * Build the wind model
+ * 
+ * Question I need to answer about how my wind model works is:
+ * - Are the altitudes MSL or AGL?
+ * - AGL makes more sense if I am inputting wind in the local area of an airfield
+ * - But could be confusing if I am transiting long distances
+ * - For example, 0 ft AGL at one airport could be like 3100 ft MSL
  */
 let windModel = new WindModel();
 windModel.addAltitude(
@@ -53,12 +59,12 @@ let aircraft = new LightFixedWing();
 let initialAircraftState = new StateVector(
   new PositionVector(new Meters(0), new Meters(0), new Meters(-1000)), // start at 0, 0, 1000 m above sea level
   new VelocityVector(
-    new MetersPerSecond(0),
-    new MetersPerSecond(0),
-    new MetersPerSecond(0)
-  ), // start at 50 m/s forward, 0 lateral and vertical velocity
-  new EulerAngles(0, 0, 0), // start at 0, 0, 0 euler angles
-  new RotationalVelocities(new RadiansPerSecond(0.5), 0, 0) // start at 0, 0, 0 rotational velocities
+    new MetersPerSecond(50), // forward velocity
+    new MetersPerSecond(0), // lateral velocity
+    new MetersPerSecond(0) // vertical velocity
+  ),
+  new EulerAngles(0, 0, 0), // start at 0, 0, 0 euler angles = thus level flight
+  new RotationalVelocities(new RadiansPerSecond(0), 0, 0) // start at 0, 0, 0 rotational velocities = thus no rotation
 );
 
 let aircraftDynamicsModel = new AircraftDynamicsModel(aircraft, environment);
@@ -76,4 +82,8 @@ let simulation = new Simulation({
   integrator,
 });
 
-simulation.run();
+console.log('Simulation ready to start...');
+
+window.startSimulation = () => {
+  simulation.run();
+}
