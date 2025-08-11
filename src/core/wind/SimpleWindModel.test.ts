@@ -1,17 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import WindModel from './WindModel';
 import Wind from './Wind';
 import Knots from '../velocity/Knots';
 import CardinalDegree from '../angles/CardinalDegree';
 import Meters from '../length/Meters';
 import { round } from '../helpers/math';
 import MSL from '../altitude/MSL';
+import LinearDecayModel from './LinearDecayModel';
+import SimpleWindModel from './SimpleWindModel';
 
 describe('WindModel', () => {
-  let windModel: WindModel;
+  let windModel: SimpleWindModel;
 
   beforeEach(() => {
-    windModel = new WindModel();
+    windModel = new SimpleWindModel(new LinearDecayModel());
   });
 
   describe('addAltitude', () => {
@@ -59,8 +60,8 @@ describe('WindModel', () => {
     it('should return zero wind when no data is available', () => {
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(1000)));
       
-      expect(wind.speed.value).toBe(0);
-      expect(wind.direction.value).toBe(360);
+      expect(wind.horizontalSpeed.value).toBe(0);
+      expect(wind.horizontalDirection.value).toBe(360);
     });
   });
 
@@ -73,8 +74,8 @@ describe('WindModel', () => {
       
       // Linear decay from 5000 feet (20 knots) to surface (2 knots)
       // At 1000 feet: 2 + ((20-2)/1524) * 304.8 = 2 + 3.6 = 5.6 knots
-      expect(wind.speed.value).toBe(5.6);
-      expect(wind.direction.value).toBe(270); // Direction should remain the same
+      expect(wind.horizontalSpeed.value).toBe(5.6);
+      expect(wind.horizontalDirection.value).toBe(270); // Direction should remain the same
     });
 
     it('should return proper decayed wind at intermediate altitude', () => {
@@ -85,8 +86,8 @@ describe('WindModel', () => {
       
       // Linear decay from 5000 feet (20 knots) to surface (2 knots)
       // At 2500 feet: 2 + ((20-2)/1524) * 762 = 2 + 9 = 11 knots
-      expect(wind.speed.value).toBe(11);
-      expect(wind.direction.value).toBe(270);
+      expect(wind.horizontalSpeed.value).toBe(11);
+      expect(wind.horizontalDirection.value).toBe(270);
     });
   });
 
@@ -100,8 +101,8 @@ describe('WindModel', () => {
       
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(10000)));
       
-      expect(wind.speed.value).toBe(15);
-      expect(wind.direction.value).toBe(270);
+      expect(wind.horizontalSpeed.value).toBe(15);
+      expect(wind.horizontalDirection.value).toBe(270);
     });
 
     it('should return highest wind when altitude equals highest known', () => {
@@ -113,8 +114,8 @@ describe('WindModel', () => {
       
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(5000)));
       
-      expect(wind.speed.value).toBe(15);
-      expect(wind.direction.value).toBe(270);
+      expect(wind.horizontalSpeed.value).toBe(15);
+      expect(wind.horizontalDirection.value).toBe(270);
     });
   });
 
@@ -131,8 +132,8 @@ describe('WindModel', () => {
       // Should decay from lowest registered wind (10 knots at 1000 feet)
       // Surface speed = 10 * 0.1 = 1 knot
       // At 500 feet: 1 + ((10-1)/304.8) * 152.4 = 1 + 4.5 = 5.5 knots
-      expect(round(wind.speed.value, 1)).toBe(5.5);
-      expect(wind.direction.value).toBe(260); // Direction from lowest wind
+      expect(round(wind.horizontalSpeed.value, 1)).toBe(5.5);
+      expect(wind.horizontalDirection.value).toBe(260); // Direction from lowest wind
     });
   });
 
@@ -148,9 +149,9 @@ describe('WindModel', () => {
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(2000)));
       
       // Speed should be interpolated: 10 + (20-10) * 0.5 = 15
-      expect(wind.speed.value).toBe(15);
+      expect(wind.horizontalSpeed.value).toBe(15);
       // Direction should be interpolated: 260 + (280-260) * 0.5 = 270
-      expect(wind.direction.value).toBe(270);
+      expect(wind.horizontalDirection.value).toBe(270);
     });
 
     it('should handle direction interpolation across 0 degrees', () => {
@@ -163,8 +164,8 @@ describe('WindModel', () => {
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(2000)));
       
       // Should interpolate through 0 degrees, not 180
-      expect(wind.speed.value).toBe(15);
-      expect(round(wind.direction.value)).toBe(360); // 350 + (10-350) * 0.5 = 0
+      expect(wind.horizontalSpeed.value).toBe(15);
+      expect(round(wind.horizontalDirection.value)).toBe(360); // 350 + (10-350) * 0.5 = 0
     });
 
     it('should handle direction interpolation across 360 degrees', () => {
@@ -177,8 +178,8 @@ describe('WindModel', () => {
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(2000)));
       
       // Should interpolate through 360 degrees
-      expect(wind.speed.value).toBe(15);
-      expect(round(wind.direction.value)).toBe(360); // 10 + (350-10) * 0.5 = 0
+      expect(wind.horizontalSpeed.value).toBe(15);
+      expect(round(wind.horizontalDirection.value)).toBe(360); // 10 + (350-10) * 0.5 = 0
     });
   });
 
@@ -194,13 +195,13 @@ describe('WindModel', () => {
       
       // Test between first and second points
       const wind12 = windModel.getWindAtAltitude(new MSL(new Meters(2000)));
-      expect(wind12.speed.value).toBe(7.5); // 5 + (10-5) * 0.5
-      expect(wind12.direction.value).toBe(265); // 260 + (270-260) * 0.5
+      expect(wind12.horizontalSpeed.value).toBe(7.5); // 5 + (10-5) * 0.5
+      expect(wind12.horizontalDirection.value).toBe(265); // 260 + (270-260) * 0.5
       
       // Test between second and third points
       const wind23 = windModel.getWindAtAltitude(new MSL(new Meters(4000)));
-      expect(wind23.speed.value).toBe(12.5); // 10 + (15-10) * 0.5
-      expect(wind23.direction.value).toBe(275); // 270 + (280-270) * 0.5
+      expect(wind23.horizontalSpeed.value).toBe(12.5); // 10 + (15-10) * 0.5
+      expect(wind23.horizontalDirection.value).toBe(275); // 270 + (280-270) * 0.5
     });
   });
 
@@ -235,8 +236,8 @@ describe('WindModel', () => {
       
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(1000.5)));
       
-      expect(wind.speed.value).toBe(10.5);
-      expect(round(wind.direction.value, 1)).toBe(260.5);
+      expect(wind.horizontalSpeed.value).toBe(10.5);
+      expect(round(wind.horizontalDirection.value, 1)).toBe(260.5);
     });
 
     it('should handle zero wind speed', () => {
@@ -248,8 +249,8 @@ describe('WindModel', () => {
       
       const wind = windModel.getWindAtAltitude(new MSL(new Meters(2000)));
       
-      expect(round(wind.speed.value)).toBe(5); // 0 + (10-0) * 0.5
-      expect(wind.direction.value).toBe(275); // 270 + (280-270) * 0.5
+      expect(round(wind.horizontalSpeed.value)).toBe(5); // 0 + (10-0) * 0.5
+      expect(wind.horizontalDirection.value).toBe(275); // 270 + (280-270) * 0.5
     });
 
     it('should handle negative altitude input gracefully', () => {
@@ -261,8 +262,8 @@ describe('WindModel', () => {
       // Should return decayed wind from lowest wind (20 knots at 1000 feet)
       // Surface speed = 20 * 0.1 = 2 knots
       // At 0 altitude (after clamping): 2 knots
-      expect(round(result.speed.value, 2)).toBe(2);
-      expect(result.direction.value).toBe(270);
+      expect(round(result.horizontalSpeed.value, 2)).toBe(2);
+      expect(result.horizontalDirection.value).toBe(270);
     });
   });
 });

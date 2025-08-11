@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+body {
+  @apply antialiased select-none bg-black text-white;
+}

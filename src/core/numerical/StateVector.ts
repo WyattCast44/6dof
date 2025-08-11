@@ -1,0 +1,76 @@
+import type MSL from "../altitude/MSL";
+import EulerAngles from "../attitude/EulerAngles";
+import RotationalVelocities from "../attitude/RotationalVelocities";
+import Meters from "../length/Meters";
+import PositionVector from "../vectors/PositionVector";
+import VelocityVector from "../vectors/VelocityVector";
+import MetersPerSecond from "../velocity/MetersPerSecond";
+
+/**
+ * The state vector holds the current state of the aircraft
+ *
+ * It stores the position, velocity, attitude, and rotational velocities of the aircraft
+ *
+ * It is used in the integration process to calculate the next state of the aircraft
+ * based on the forces and moments acting on the aircraft and the environment.
+ *
+ * It does not perform any calculations. It is simply a container for the current state of the aircraft.
+ */
+class StateVector {
+  // Position
+  public position: PositionVector;
+
+  // Velocity
+  public velocity: VelocityVector;
+
+  // Euler angles
+  public angles: EulerAngles;
+
+  // Rotational velocities
+  public rates: RotationalVelocities;
+
+  constructor(
+    position: PositionVector = new PositionVector(
+      new Meters(0),
+      new Meters(0),
+      new Meters(0)
+    ),
+    velocity: VelocityVector = new VelocityVector(
+      new MetersPerSecond(0),
+      new MetersPerSecond(0),
+      new MetersPerSecond(0)
+    ),
+    angles: EulerAngles = new EulerAngles(0, 0, 0),
+    rates: RotationalVelocities = new RotationalVelocities(0, 0, 0)
+  ) {
+    this.position = position;
+    this.velocity = velocity;
+    this.angles = angles;
+    this.rates = rates;
+  }
+
+  static wingsLevelFlight({
+    altitude,
+    forwardSpeed,
+  }: {
+    altitude: MSL;
+    forwardSpeed: MetersPerSecond;
+  }) {
+    let altitudeInMeters = altitude.value;
+    let position = new PositionVector(
+      new Meters(0),
+      new Meters(0),
+      new Meters(-altitudeInMeters)
+    );
+    let velocity = new VelocityVector(
+      forwardSpeed,
+      new MetersPerSecond(0),
+      new MetersPerSecond(0)
+    );
+    let angles = new EulerAngles(0, 0, 0);
+    let rates = new RotationalVelocities(0, 0, 0);
+    return new StateVector(position, velocity, angles, rates);
+  }
+}
+
+export default StateVector;

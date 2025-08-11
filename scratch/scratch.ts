@@ -72,10 +72,10 @@
  * 
  */
 
-import EulerAngles from "./support/attitude/EulerAngles";
-import BodyNedDCM from "./support/transforms/BodyNedDCM";
-import BodyVector from "./support/vectors/BodyVector";
-import Radians from "./support/angles/Radians";
+import EulerAngles from "../src/support/attitude/EulerAngles";
+import BodyNedDCM from "../src/support/transforms/BodyNedDCM";
+import BodyVector from "../src/support/vectors/BodyVector";
+import Radians from "../src/support/angles/Radians";
 
 console.log("Testing DCM with zero Euler angles...");
 

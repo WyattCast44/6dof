@@ -1,5 +1,14 @@
 import RadiansPerSecond from "../rates/RadiansPerSecond";
 
+/**
+ * The rotational velocities are a set of three angular velocities that describe the rotational motion of the aircraft.
+ * 
+ * Roll is the angular velocity around the x axis (roll axis). Positive is right.
+ * 
+ * Pitch is the angular velocity around the y axis (pitch axis). Positive is up.
+ * 
+ * Yaw is the angular velocity around the z axis (yaw axis). Positive is right.
+ */
 class RotationalVelocities {
     public roll_p: RadiansPerSecond;
     public pitch_q: RadiansPerSecond;

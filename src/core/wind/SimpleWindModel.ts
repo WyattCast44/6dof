@@ -1,19 +1,27 @@
-import type Altitude from "../altitude/Altitude";
+import type MSL from "../altitude/MSL";
 import CardinalDegree from "../angles/CardinalDegree";
 import Meters from "../length/Meters";
 import Knots from "../velocity/Knots";
 import Wind from "./Wind";
+import WindModel from "./WindModel";
+import DecayModel from "./DecayModel";
+import WindField from "./WindField";
+import Degrees from "../angles/Degrees";
 
-class WindModel {
-  private altitudes: Map<number, Wind> = new Map();
+class SimpleWindModel extends WindModel {
+  private altitudes: Map<number, WindField> = new Map();
 
-  constructor() {
-    this.altitudes = new Map();
+  constructor(decayModel: DecayModel) {
+    super(decayModel);
   }
 
-  addAltitude(altitude: Altitude, wind: Wind) {
+  addAltitude(altitude: MSL, wind: Wind) {
+    // this is a simple wind model, so we need to convert the wind to a wind field
+    // and assume the vertical speed is 0 and the vertical direction is 0
+    const windField = new WindField(wind.speed, wind.direction, new Knots(0), new Degrees(0));
+      
     // we need to store the wind at the altitude in the map
-    this.altitudes.set(altitude.value.value, wind);
+    this.altitudes.set(altitude.value.value, windField);
 
     this.resortAltitudes();
   }
@@ -22,7 +30,7 @@ class WindModel {
     // we need to resort the altitudes in the map
     // so that the altitudes are in ascending order
     // for example, if we have the following altitudes:
-    // 1000, 2000, 3000, 4000, 5000
+    // 1000, 3000, 2000, 4000, 5000
     // we need to resort them to:
     // 1000, 2000, 3000, 4000, 5000
     // so that the altitudes are in ascending order
@@ -30,7 +38,7 @@ class WindModel {
     this.altitudes = new Map([...this.altitudes].sort((a, b) => a[0] - b[0]));
   }
 
-  getWindAtAltitude(altitude: Altitude): Wind {
+  getWindAtAltitude(altitude: MSL): WindField {
     let altitudeInMeters = altitude.value;
 
     // ensure that the altitude is positive
@@ -40,7 +48,7 @@ class WindModel {
 
     // No wind data available
     if (this.altitudes.size === 0) {
-      return new Wind({ speed: new Knots(0), direction: new CardinalDegree(0) });
+      return new WindField(new Knots(0), new CardinalDegree(0), new Knots(0), new Degrees(0));
     }
 
     const altitudeArray = Array.from(this.altitudes.entries());
@@ -51,7 +59,10 @@ class WindModel {
 
     // Single altitude point
     if (this.altitudes.size === 1) {
-      return this.calculateDecayWind(altitudeInMeters.value, lowestWind);
+      return this.calculateDecayWind(altitudeInMeters.value, new Wind({
+        speed: lowestWind.horizontalSpeed,
+        direction: lowestWind.horizontalDirection
+      }));
     }
 
     // Altitude above highest known altitude
@@ -61,7 +72,10 @@ class WindModel {
 
     // Altitude below lowest known altitude
     if (altitudeInMeters.value <= lowestAltitude) {
-      return this.calculateDecayWind(altitudeInMeters.value, lowestWind);
+      return this.calculateDecayWind(altitudeInMeters.value, new Wind({
+        speed: lowestWind.horizontalSpeed,
+        direction: lowestWind.horizontalDirection
+      }));
     }
 
     // Find the altitude range for interpolation
@@ -69,7 +83,7 @@ class WindModel {
     if (range) {
       const [wind1, wind2, alt1, alt2] = range;
       const ratio = (altitudeInMeters.value - alt1) / (alt2 - alt1);
-      return this.interpolateWind(wind1, wind2, ratio);
+      return this.interpolateWind(new WindField(wind1.speed, wind1.direction, new Knots(0), new Degrees(0)), new WindField(wind2.speed, wind2.direction, new Knots(0), new Degrees(0)), ratio);
     }
 
     // Fallback to highest wind
@@ -99,32 +113,38 @@ class WindModel {
     if (left < right) {
       const [alt1, wind1] = altitudeArray[left];
       const [alt2, wind2] = altitudeArray[right];
-      return [wind1, wind2, alt1, alt2];
+      return [new Wind({
+        speed: wind1.horizontalSpeed,
+        direction: wind1.horizontalDirection
+      }), new Wind({
+        speed: wind2.horizontalSpeed,
+        direction: wind2.horizontalDirection
+      }), alt1, alt2];
     }
 
     return null;
   }
 
-  private interpolateWind(wind1: Wind, wind2: Wind, ratio: number): Wind {
+  private interpolateWind(wind1: WindField, wind2: WindField, ratio: number): WindField {
     // Interpolate speed
     const speed1 =
-      wind1.speed instanceof Knots ? wind1.speed.value : wind1.speed;
+      wind1.horizontalSpeed instanceof Knots ? wind1.horizontalSpeed.value : wind1.horizontalSpeed;
     const speed2 =
-      wind2.speed instanceof Knots ? wind2.speed.value : wind2.speed;
+      wind2.horizontalSpeed instanceof Knots ? wind2.horizontalSpeed.value : wind2.horizontalSpeed;
     const interpolatedSpeed = speed1 + (speed2 - speed1) * ratio;
 
     // Interpolate direction
     const dir1 =
-      wind1.direction instanceof CardinalDegree
-        ? wind1.direction
-        : new CardinalDegree(wind1.direction);
+      wind1.horizontalDirection instanceof CardinalDegree
+        ? wind1.horizontalDirection
+        : new CardinalDegree(wind1.horizontalDirection);
     const dir2 =
-      wind2.direction instanceof CardinalDegree
-        ? wind2.direction
-        : new CardinalDegree(wind2.direction);
+      wind2.horizontalDirection instanceof CardinalDegree
+        ? wind2.horizontalDirection
+        : new CardinalDegree(wind2.horizontalDirection);
     const interpolatedDirection = this.interpolateDirection(dir1, dir2, ratio);
 
-    return new Wind({ speed: new Knots(interpolatedSpeed), direction: interpolatedDirection });
+    return new WindField(new Knots(interpolatedSpeed), interpolatedDirection, new Knots(0), new Degrees(0));
   }
 
   private interpolateDirection(
@@ -151,9 +171,9 @@ class WindModel {
     return new CardinalDegree(interpolatedDeg);
   }
 
-  private calculateDecayWind(targetAltitude: number, lowestWind: Wind): Wind {
+  private calculateDecayWind(targetAltitude: number, lowestWind: Wind): WindField {
     const lowestSpeed = lowestWind.speed.value;
-    const surfaceSpeed = lowestSpeed * 0.1; // 10% of lowest speed at surface
+    const surfaceSpeed = lowestSpeed * this.decayModel.getDecayFactor();
 
     // Calculate the altitude where the lowest wind occurs
     const altitudeArray = Array.from(this.altitudes.entries());
@@ -171,7 +191,7 @@ class WindModel {
         ? lowestWind.direction
         : new CardinalDegree(lowestWind.direction);
 
-    return new Wind({ speed: new Knots(targetSpeed), direction: direction });
+    return new WindField(new Knots(targetSpeed), direction, new Knots(0), new Degrees(0));
   }
 
   getMinAltitude(): Meters {
@@ -189,4 +209,4 @@ class WindModel {
   }
 }
 
-export default WindModel;
+export default SimpleWindModel;

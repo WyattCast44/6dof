@@ -4,14 +4,23 @@ import type Feet from "../length/Feet";
 import type Meters from "../length/Meters";
 import type NewtonsPerMetersSquared from "../pressure/NewtonsPerMetersSquared";
 import type Celsius from "../temperature/Celsius";
+import type AtmosphereConditions from "./AtmosphereConditions";
 
 abstract class AtmosphereModel {
   constructor(public gravityModel: GravityModel) {}
 
-  abstract getTemperatureAtAltitude(altitude: Feet | Meters): Celsius;
+  abstract getConditionsAtAltitude(
+    altitude: Feet | Meters
+  ): AtmosphereConditions;
+
+  abstract getTemperatureAtAltitude(
+    altitude: Feet | Meters
+  ): Celsius;
+
   abstract getPressureAtAltitude(
     altitude: Feet | Meters
   ): NewtonsPerMetersSquared;
+
   abstract getDensityAtAltitude(
     altitude: Feet | Meters
   ): KilogramsPerMeterCubed;
