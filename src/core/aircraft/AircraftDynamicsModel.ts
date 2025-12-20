@@ -1,5 +1,5 @@
 import AircraftProperties from "./AircraftProperties";
-import Environment from "../enviroment/Enviroment";
+import Environment from "../environment/Environment";
 import StateVector from "../numerical/StateVector";
 import Meters from "../length/Meters";
 import MetersPerSecond from "../velocity/MetersPerSecond";

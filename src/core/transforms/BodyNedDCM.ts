@@ -44,9 +44,9 @@ class BodyNedDCM extends DCM {
    * @returns The 3x3 direction cosine matrix
    */
   calculateBodyToNedDCM(eulerAngles: EulerAngles): number[][] {
-    const psi = eulerAngles.azimuth_psi.value; // Yaw angle
-    const theta = eulerAngles.elevation_theta.value; // Pitch angle
-    const phi = eulerAngles.bank_phi.value; // Roll angle
+    const psi = eulerAngles.psi.value; // Yaw angle
+    const theta = eulerAngles.theta.value; // Pitch angle
+    const phi = eulerAngles.phi.value; // Roll angle
 
     // Trigonometric functions
     const sinPhi = Math.sin(phi); // sin(φ)

@@ -12,11 +12,13 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    // dont fail build if a value is declared but not used
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,

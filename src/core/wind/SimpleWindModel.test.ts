@@ -7,12 +7,20 @@ import { round } from '../helpers/math';
 import MSL from '../altitude/MSL';
 import LinearDecayModel from './LinearDecayModel';
 import SimpleWindModel from './SimpleWindModel';
+import type DecayModel from './DecayModel';
+import type AtmosphereModel from '../atmosphere/AtmosphereModel';
+import StandardAtmosphere1976 from '../atmosphere/StandardAtmosphere1976';
+import ConstantGravityModel from '../gravity/ConstantGravityModel';
 
 describe('WindModel', () => {
   let windModel: SimpleWindModel;
+  let atmosphereModel: AtmosphereModel;
+  let decayModel: DecayModel;
 
   beforeEach(() => {
-    windModel = new SimpleWindModel(new LinearDecayModel());
+    atmosphereModel = new StandardAtmosphere1976(new ConstantGravityModel());
+    decayModel = new LinearDecayModel();
+    windModel = new SimpleWindModel({ atmosphereModel, decayModel });
   });
 
   describe('addAltitude', () => {

@@ -1,0 +1,12 @@
+{
+    "id": "f16",
+    "name": "F-16",
+    "type": "light-fixed-wing",
+    "mass_kg": 9300,
+    "roll_inertia_kgm2": 12821,
+    "pitch_inertia_kgm2": 75674,
+    "yaw_inertia_kgm2": 85552,
+    "cross_product_inertia_kgm2": 1331,
+    "wing_span_m": 9.14,
+    "wing_area_m2": 27.87
+}

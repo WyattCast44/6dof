@@ -2,6 +2,7 @@ import AircraftDynamicsModel from "../aircraft/AircraftDynamicsModel";
 import Radians from "../angles/Radians";
 import EulerAngles from "../attitude/EulerAngles";
 import RotationalVelocities from "../attitude/RotationalVelocities";
+import type FlightDynamics from "../flight/FlightDynamics";
 import Meters from "../length/Meters";
 import RadiansPerSecond from "../rates/RadiansPerSecond";
 import PositionVector from "../vectors/PositionVector";
@@ -19,7 +20,7 @@ import StateVector from "./StateVector";
  * include Runge-Kutta 4th order and other advanced integration schemes.
  */
 class Integrator {
-  constructor(private dynamicsModel: AircraftDynamicsModel) {}
+  constructor(private dynamicsModel: AircraftDynamicsModel|FlightDynamics) {}
 
   /**
    * Integrate the aircraft state forward by one time step using Euler method
@@ -69,38 +70,6 @@ class Integrator {
     );
     
     return newState;
-  }
-
-  /**
-   * Integrate the aircraft state for multiple time steps
-   * 
-   * @param initialState - Starting aircraft state
-   * @param startTime - Starting simulation time
-   * @param endTime - Ending simulation time
-   * @param timeStep - Integration time step
-   * @returns Array of states at each time step
-   */
-  integrateOverTime(
-    initialState: StateVector,
-    startTime: number,
-    endTime: number,
-    timeStep: number
-  ): Array<{ time: number; state: StateVector }> {
-    const results: Array<{ time: number; state: StateVector }> = [];
-    let currentState = initialState;
-    let currentTime = startTime;
-    
-    while (currentTime <= endTime) {
-      results.push({ time: currentTime, state: currentState });
-      
-      if (currentTime < endTime) {
-        currentState = this.integrate(currentState, currentTime, timeStep);
-      }
-      
-      currentTime += timeStep;
-    }
-    
-    return results;
   }
 }
 

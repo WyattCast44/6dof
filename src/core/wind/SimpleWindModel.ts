@@ -3,16 +3,15 @@ import CardinalDegree from "../angles/CardinalDegree";
 import Meters from "../length/Meters";
 import Knots from "../velocity/Knots";
 import Wind from "./Wind";
-import WindModel from "./WindModel";
-import DecayModel from "./DecayModel";
+import WindModel, { type WindModelProps } from "./WindModel";
 import WindField from "./WindField";
 import Degrees from "../angles/Degrees";
 
 class SimpleWindModel extends WindModel {
   private altitudes: Map<number, WindField> = new Map();
 
-  constructor(decayModel: DecayModel) {
-    super(decayModel);
+  constructor(props: WindModelProps) {
+    super(props);
   }
 
   addAltitude(altitude: MSL, wind: Wind) {

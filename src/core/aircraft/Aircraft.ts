@@ -1,24 +1,44 @@
-import type StateVector from "../numerical/StateVector";
-import type AircraftDynamicsModel from "./AircraftDynamicsModel";
-import type AircraftProperties from "./AircraftProperties";
+import StateVector from "../numerical/StateVector";
+import AircraftProperties from "./AircraftProperties";
 
 class Aircraft {
     private properties: AircraftProperties;
-    private dynamicsModel: AircraftDynamicsModel;
     private initialState: StateVector;
+    private currentState: StateVector;
+    private stateHistory: StateVector[] = [];
 
     constructor({
         properties,
-        dynamicsModel,
         initialState,
     }: {
         properties: AircraftProperties;
-        dynamicsModel: AircraftDynamicsModel;
         initialState: StateVector;
     }) {
         this.properties = properties;
-        this.dynamicsModel = dynamicsModel;
         this.initialState = initialState;
+        this.currentState = initialState;
+        this.stateHistory.push(initialState);
+    }
+
+    getProperties(): AircraftProperties {
+        return this.properties;
+    }
+
+    getInitialState(): StateVector {
+        return this.initialState;
+    }
+
+    getCurrentState(): StateVector {
+        return this.currentState;
+    }
+
+    setCurrentState(state: StateVector): void {
+        this.currentState = state;
+        this.stateHistory.push(state);
+    }
+
+    getStateHistory(): StateVector[] {
+        return this.stateHistory;
     }
 }
 

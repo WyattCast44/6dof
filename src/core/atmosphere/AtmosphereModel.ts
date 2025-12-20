@@ -6,16 +6,21 @@ import type NewtonsPerMetersSquared from "../pressure/NewtonsPerMetersSquared";
 import type Celsius from "../temperature/Celsius";
 import type AtmosphereConditions from "./AtmosphereConditions";
 
+/**
+ * Abstract base class for atmosphere models.
+ *
+ * When you need multiple atmospheric properties at the same altitude,
+ * prefer `getConditionsAtAltitude()` over calling individual methods—
+ * it computes all values in a single pass.
+ */
 abstract class AtmosphereModel {
-  constructor(public gravityModel: GravityModel) {}
+  constructor(public readonly gravityModel: GravityModel) {}
 
   abstract getConditionsAtAltitude(
     altitude: Feet | Meters
   ): AtmosphereConditions;
 
-  abstract getTemperatureAtAltitude(
-    altitude: Feet | Meters
-  ): Celsius;
+  abstract getTemperatureAtAltitude(altitude: Feet | Meters): Celsius;
 
   abstract getPressureAtAltitude(
     altitude: Feet | Meters

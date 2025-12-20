@@ -1,0 +1,199 @@
+import type MSL from "../altitude/MSL";
+import EulerAngles from "../attitude/EulerAngles";
+import RotationalVelocities from "../attitude/RotationalVelocities";
+import Meters from "../length/Meters";
+import PositionVector from "../vectors/PositionVector";
+import VelocityVector from "../vectors/VelocityVector";
+import MetersPerSecond from "../velocity/MetersPerSecond";
+
+/**
+ * The state vector holds the current state of the aircraft
+ *
+ * It stores the position, velocity, attitude, and rotational velocities of the aircraft
+ *
+ * It is used in the integration process to calculate the next state of the aircraft
+ * based on the forces and moments acting on the aircraft and the environment.
+ *
+ * It does not perform any calculations. It is simply a container for the current state of the aircraft.
+ */
+class StateVector {
+  // Position: 3 x degrees of freedom
+  // x = position in the x direction
+  // y = position in the y direction
+  // z = position in the z direction
+  public position: PositionVector;
+
+  // Velocity: 3 x degrees of freedom
+  // u = translation velocity in the x direction
+  // v = translation velocity in the y direction
+  // w = translation velocity in the z direction
+  public velocity: VelocityVector;
+
+  // Euler angles: 3 x degrees of freedom
+  // roll_phi = roll angle
+  // pitch_theta = pitch angle
+  // yaw_psi = yaw angle
+  public angles: EulerAngles;
+
+  // Rotational velocities: 3 x degrees of freedom
+  // roll_p = roll angular velocity, aka roll rate
+  // pitch_q = pitch angular velocity, aka pitch rate
+  // yaw_r = yaw angular velocity, aka yaw rate
+  public rates: RotationalVelocities;
+
+  constructor(
+    position: PositionVector = new PositionVector(
+      new Meters(0),
+      new Meters(0),
+      new Meters(0)
+    ),
+    velocity: VelocityVector = new VelocityVector(
+      new MetersPerSecond(0),
+      new MetersPerSecond(0),
+      new MetersPerSecond(0)
+    ),
+    angles: EulerAngles = new EulerAngles(0, 0, 0),
+    rates: RotationalVelocities = new RotationalVelocities(0, 0, 0)
+  ) {
+    this.position = position;
+    this.velocity = velocity;
+    this.angles = angles;
+    this.rates = rates;
+  }
+
+  static wingsLevelFlight({
+    altitude,
+    forwardSpeed,
+  }: {
+    altitude: MSL;
+    forwardSpeed: MetersPerSecond;
+  }) {
+    let position = new PositionVector(
+      new Meters(0),
+      new Meters(0),
+      new Meters(-altitude.value.value) // height above sea level is negative, so we subtract it
+    );
+    let velocity = new VelocityVector(
+      forwardSpeed,
+      new MetersPerSecond(0),
+      new MetersPerSecond(0)
+    );
+    let angles = new EulerAngles(0, 0, 0);
+    let rates = new RotationalVelocities(0, 0, 0);
+    return new StateVector(position, velocity, angles, rates);
+  }
+}
+
+export default StateVector;
+
+import Meters from "../length/Meters";
+
+/**
+ * The position vector is a 3D vector that represents the position of the aircraft in 3D space.
+ * 
+ * Z is the altitude above ground level (AGL) and is positive in the down direction. So an aircraft
+ * at 1000 m AGL would have a z value of -1000 m. 0 would be at sea level.
+ * 
+ * X is the easting and is positive in the east direction.
+ * 
+ * Y is the northing and is positive in the north direction.
+ */
+class PositionVector {
+    constructor(
+        public readonly x: Meters,
+        public readonly y: Meters,
+        public readonly z: Meters,
+    ) {}
+
+    /**
+     * Todo - move toward this api for all vectors
+     */
+    public static from(vector: { x: Meters|number, y: Meters|number, z: Meters|number }): PositionVector {
+        let x = vector.x instanceof Meters ? vector.x : new Meters(vector.x);
+        let y = vector.y instanceof Meters ? vector.y : new Meters(vector.y);
+        let z = vector.z instanceof Meters ? vector.z : new Meters(vector.z);
+
+        return new PositionVector(x, y, z);
+    }
+}
+
+export default PositionVector;
+
+import MetersPerSecond from "../velocity/MetersPerSecond";
+
+/**
+ * The velocity vector is a 3D vector that represents the velocity of the aircraft in 3D space.
+ * 
+ * U is the velocity in the longitudinal direction (forward) - positive is forward
+ * 
+ * V is the velocity in the lateral direction (right) - positive is right
+ * 
+ * W is the velocity in the vertical direction (up) - positive is up
+ */
+class VelocityVector {
+    constructor(
+        public readonly u: MetersPerSecond,
+        public readonly v: MetersPerSecond,
+        public readonly w: MetersPerSecond,
+    ) {}
+}
+
+export default VelocityVector;
+
+import Radians from "../angles/Radians";
+
+/**
+ * The Euler angles are a set of three angles that describe the attitude of the aircraft.
+ * 
+ * Yaw is the angle in the horizontal plane from north to the aircraft's heading. Positive is east.
+ * 
+ * Pitch is the angle in the vertical plane from the horizontal plane to the aircraft's elevation. Positive is up.
+ * 
+ * Roll is the angle in the horizontal plane from the aircraft's heading to the aircraft's bank. Positive is right.
+ */
+class EulerAngles {
+  public readonly yaw_psi: Radians;
+  public readonly pitch_theta: Radians;
+  public readonly roll_phi: Radians;
+
+  constructor(
+    yaw_psi: Radians|number,
+    pitch_theta: Radians|number,
+    roll_phi: Radians|number
+  ) {
+    this.yaw_psi = yaw_psi instanceof Radians ? yaw_psi : new Radians(yaw_psi);
+    this.pitch_theta = pitch_theta instanceof Radians ? pitch_theta : new Radians(pitch_theta);
+    this.roll_phi = roll_phi instanceof Radians ? roll_phi : new Radians(roll_phi);
+  }
+}
+
+export default EulerAngles;
+
+import RadiansPerSecond from "../rates/RadiansPerSecond";
+
+/**
+ * The rotational velocities are a set of three angular velocities that describe the rotational motion of the aircraft.
+ * 
+ * Roll is the angular velocity around the x axis (roll axis). Positive is right.
+ * 
+ * Pitch is the angular velocity around the y axis (pitch axis). Positive is up.
+ * 
+ * Yaw is the angular velocity around the z axis (yaw axis). Positive is right.
+ */
+class RotationalVelocities {
+    public roll_p: RadiansPerSecond;
+    public pitch_q: RadiansPerSecond;
+    public yaw_r: RadiansPerSecond;
+
+    constructor(
+        roll_p: RadiansPerSecond|number,
+        pitch_q: RadiansPerSecond|number,
+        yaw_r: RadiansPerSecond|number
+    ) {
+        this.roll_p = roll_p instanceof RadiansPerSecond ? roll_p : new RadiansPerSecond(roll_p);
+        this.pitch_q = pitch_q instanceof RadiansPerSecond ? pitch_q : new RadiansPerSecond(pitch_q);
+        this.yaw_r = yaw_r instanceof RadiansPerSecond ? yaw_r : new RadiansPerSecond(yaw_r);
+    }
+}
+
+export default RotationalVelocities;

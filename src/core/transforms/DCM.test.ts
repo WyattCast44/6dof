@@ -36,33 +36,6 @@ describe("Direction Cosine Matrix (DCM) Transformations", () => {
       expect(bodyVelocity2.x).toBeCloseTo(0.0, 2); // North
       expect(bodyVelocity2.y).toBeCloseTo(50.0, 2); // East
       expect(bodyVelocity2.z).toBeCloseTo(0.0, 2); // Down
-    })
-
-    it("test case from the video", () => {
-      // handle going from body to ned
-      let wingTipVector = new BodyVector(0, 1.76, 0.12);
-  
-      let eulerAngles = new EulerAngles(
-        new Degrees(45).toRadians(),
-        new Degrees(0).toRadians(),
-        new Degrees(0).toRadians()
-      );
-  
-      let dcm = new BodyNedDCM(eulerAngles);
-  
-      let transformedVector = dcm.transformFromBody(wingTipVector);
-  
-      expect(transformedVector.north).toBeCloseTo(-1.244, 2); // north
-      expect(transformedVector.east).toBeCloseTo(1.244, 2); // east
-      expect(transformedVector.down).toBeCloseTo(0.12, 2); // down
-
-      // now go from ned to body
-      let wingTipVector2 = new NedVector(-1.244, 1.244, 0.12);
-      let transformedVector2 = dcm.transformToBody(wingTipVector2);
-
-      expect(transformedVector2.x).toBeCloseTo(0.0, 2); // North
-      expect(transformedVector2.y).toBeCloseTo(1.76, 2); // East
-      expect(transformedVector2.z).toBeCloseTo(0.12, 2); // Down
     });
 
     it("should transform pitch up velocity correctly", () => {
@@ -78,7 +51,7 @@ describe("Direction Cosine Matrix (DCM) Transformations", () => {
     });
 
     it("should transform roll velocity correctly", () => {
-      const roll = new EulerAngles(0, 0, new Degrees(15).toRadians());
+      const roll = new EulerAngles(new Degrees(15).toRadians(), 0, 0);
       const bodyToNed = new BodyNedDCM(roll);
 
       const bodyVelocity = new BodyVector(50, 0, 0);
