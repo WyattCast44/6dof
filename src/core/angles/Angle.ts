@@ -8,6 +8,7 @@ abstract class Angle {
   abstract toDegrees(): any;
   abstract toRadians(): any;
   abstract getStringUnits(): string;
+  abstract toString(): string;
 }
 
 export default Angle;

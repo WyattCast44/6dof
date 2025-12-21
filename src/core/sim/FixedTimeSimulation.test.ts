@@ -15,6 +15,8 @@ describe("FixedTimeSimulation", () => {
       totalTime: new Seconds(10),
       outputInterval: new Seconds(2),
     };
+    // mock the console.log function: todo: remove this once we have a proper logging system
+    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   describe("constructor", () => {

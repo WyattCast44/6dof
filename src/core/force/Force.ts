@@ -3,6 +3,7 @@ abstract class Force {
 
   abstract toNewtons(): any;
   abstract toPoundForce(): any;
+  abstract toString(): string;
 }
 
 export default Force;

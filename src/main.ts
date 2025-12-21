@@ -18,21 +18,19 @@ import ConstantGravityModel from "./core/gravity/ConstantGravityModel";
 import AircraftDynamicsModel from "./core/aircraft/AircraftDynamicsModel";
 import StandardAtmosphere1976 from "./core/atmosphere/StandardAtmosphere1976";
 
-/**
- * Build the environment
- */
+// ============================================================================
+// 1. BUILD THE ENVIRONMENT
+// ============================================================================
+
 let gravityModel: GravityModel = new ConstantGravityModel();
 let atmosphereModel: AtmosphereModel = new StandardAtmosphere1976(gravityModel);
 
-/**
- * Build the wind model
- */
 let windModel = new SimpleWindModel({
-  atmosphereModel,
+  atmosphereModel: atmosphereModel,
   decayModel: new LinearDecayModel(),
 });
 
-let windProfile = [
+const windProfile = [
   {
     altitude: new MSL(new Feet(0)),
     wind: new Wind({ speed: 8, direction: 260 }),
@@ -92,7 +90,7 @@ let integrator = new Integrator(dynamicsModel);
  */
 const simulation = new FixedTimeSimulation({
   timeStep: new Seconds(0.1), // 10 Hz
-  totalTime: new Seconds(60), // 1 minute
+  totalTime: Seconds.fromMinutes(1), // 1 minute
   outputInterval: new Seconds(5), // every 5 seconds
 });
 

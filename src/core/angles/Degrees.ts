@@ -13,6 +13,10 @@ class Degrees extends Angle {
   toRadians(): Radians {
     return new Radians(this.value * Math.PI / 180);
   }
+
+  toString(): string {
+    return `${this.value.toFixed(2)}°`;
+  }
 }
 
 export default Degrees;

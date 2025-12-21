@@ -7,8 +7,16 @@ class Minutes extends Time {
     return new Seconds(this.value * 60);
   }
 
+  static fromSeconds(value: number): Minutes {
+    return new Minutes(value / 60);
+  }
+
   toMinutes(): Minutes {
     return this;
+  }
+
+  static fromHours(value: number): Minutes {
+    return new Minutes(value * 60);
   }
 
   toHours(): Hours {

@@ -9,6 +9,10 @@ class Newtons extends Force {
   toPoundForce(): PoundForce {
     return new PoundForce(this.value / 4.44822);
   }
+
+  toString(): string {
+    return `${this.value.toFixed(2)} N`;
+  }
 }
 
 export default Newtons;

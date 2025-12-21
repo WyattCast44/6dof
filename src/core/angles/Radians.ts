@@ -13,6 +13,10 @@ class Radians extends Angle {
   toRadians(): Radians {
     return this;
   }
+
+  toString(): string {
+    return `${this.value.toFixed(2)} rad`;
+  }
 }
 
 export default Radians;

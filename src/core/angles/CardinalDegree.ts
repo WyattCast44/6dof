@@ -20,6 +20,10 @@ class CardinalDegree {
     return (value * Math.PI) / 180;
   }
 
+  private static radToDeg(value: number): number {
+    return (value * 180) / Math.PI;
+  }
+
   toDegrees(): Degrees {
     return new Degrees(this.value);
   }
@@ -36,10 +40,10 @@ class CardinalDegree {
     if (heading < 1) heading += 360;
 
     return heading;
-  }
+  }  
 
-  private static radToDeg(value: number): number {
-    return (value * 180) / Math.PI;
+  toString(): string {
+    return `${this.value.toFixed(2)}°`;
   }
 }
 

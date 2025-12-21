@@ -10,8 +10,6 @@ import type Knots from "../velocity/Knots";
  * The horizontal component is the wind speed and direction.
  * 
  * The vertical component is the wind speed and direction.
- * 
- * The wind field is a function of the altitude and the latitude and longitude.
  */
 class WindField
 {

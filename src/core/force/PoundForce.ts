@@ -9,6 +9,10 @@ class PoundForce extends Force {
   toPoundForce(): PoundForce {
     return this;
   }
+
+  toString(): string {
+    return `${this.value.toFixed(2)} lbf`;
+  }
 }
 
 export default PoundForce;
