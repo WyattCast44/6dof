@@ -4,9 +4,9 @@ import WindModel from "../wind/WindModel";
 
 class Environment {
   constructor(
-    public readonly gravityModel: GravityModel,
-    public readonly atmosphereModel: AtmosphereModel,
-    public readonly windModel: WindModel
+    public readonly gravity: GravityModel,
+    public readonly atmosphere: AtmosphereModel,
+    public readonly wind: WindModel
   ) {}
 }
 

@@ -4,6 +4,7 @@ import DecayModel from "./DecayModel";
 import type Meters from "../length/Meters";
 import AtmosphereModel from "../atmosphere/AtmosphereModel";
 import LinearDecayModel from "./LinearDecayModel";
+import type Feet from "../length/Feet";
 
 export type WindModelProps = {
   decayModel: DecayModel;
@@ -48,7 +49,7 @@ abstract class WindModel {
    * @param altitude - The altitude to get the wind at.
    * @returns The wind at the altitude.
    */
-  abstract getWindAtAltitude(altitude: MSL): WindField;
+  abstract getWindAtAltitude(altitude: MSL | Feet | Meters): WindField;
 
   /**
    * Check if there is any wind data available.

@@ -31,7 +31,7 @@ abstract class AtmosphereModel {
   ): KilogramsPerMeterCubed;
 
   getSpecificGasConstant(): number {
-    return 287; // J/(kg·K)
+    return 287; // J/(kg·K), standard specific gas constant for dry air
   }
 }
 

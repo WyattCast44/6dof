@@ -88,7 +88,7 @@ export interface StateSnapshot {
  * ```
  */
 class AircraftSimulator {
-  private _state: StateVector;
+  private _currentState: StateVector;
   private _time: number = 0;
   private _stepCount: number = 0;
 
@@ -106,10 +106,10 @@ class AircraftSimulator {
   constructor(config: AircraftSimulatorConfig) {
     this.aircraft = config.aircraft;
     this.environment = config.environment;
-    this._state = config.initialState;
+    this._currentState = config.initialState;
 
     this.recordHistory = config.recordHistory ?? false;
-    this.maxHistoryLength = config.maxHistoryLength ?? 10000;
+    this.maxHistoryLength = config.maxHistoryLength ?? 1_000;
 
     // Create dynamics model for this aircraft/environment combination
     this.dynamicsModel = new DynamicsModel(this.aircraft, this.environment);
