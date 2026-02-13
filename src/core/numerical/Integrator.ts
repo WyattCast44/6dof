@@ -1,76 +1,40 @@
-import AircraftDynamicsModel from "../aircraft/AircraftDynamicsModel";
-import Radians from "../angles/Radians";
-import EulerAngles from "../attitude/EulerAngles";
-import RotationalVelocities from "../attitude/RotationalVelocities";
-import type FlightDynamics from "../flight/FlightDynamics";
-import Meters from "../length/Meters";
-import RadiansPerSecond from "../rates/RadiansPerSecond";
-import PositionVector from "../vectors/PositionVector";
-import VelocityVector from "../vectors/VelocityVector";
-import MetersPerSecond from "../velocity/MetersPerSecond";
-import StateVector from "./StateVector";
+import type StateVector from "./StateVector";
 
 /**
- * Simple numerical integrator for aircraft state propagation
- * 
- * This class provides methods to integrate the aircraft state forward in time
- * using the equations of motion from AircraftDynamicsModel.
- * 
- * Currently implements Euler integration method. Future enhancements will
- * include Runge-Kutta 4th order and other advanced integration schemes.
+ * Fourth-order Runge-Kutta (RK4) numerical integrator.
+ *
+ * Advances a StateVector forward in time by evaluating the derivative
+ * function four times per step and combining with standard RK4 weights.
+ *
+ * The integrator is stateless — the derivative callback is provided by
+ * the caller, making it composable. Swap in Euler by providing a simpler
+ * step function externally; this class always uses classical RK4.
  */
 class Integrator {
-  constructor(private dynamicsModel: AircraftDynamicsModel|FlightDynamics) {}
-
   /**
-   * Integrate the aircraft state forward by one time step using Euler method
-   * 
-   * @param currentState - Current aircraft state
-   * @param time - Current simulation time in seconds
-   * @param timeStep - Integration time step in seconds
-   * @returns New aircraft state after integration
+   * Advance `state` by one time step using classical RK4.
+   *
+   * @param state      - Current state vector
+   * @param time       - Current simulation time (seconds)
+   * @param dt         - Time step (seconds)
+   * @param derivative - Function that computes dState/dt given (state, time)
+   * @returns New state vector at time + dt
    */
-  integrate(
-    currentState: StateVector,
+  step(
+    state: StateVector,
     time: number,
-    timeStep: number
+    dt: number,
+    derivative: (state: StateVector, time: number) => StateVector
   ): StateVector {
-    // Calculate derivatives at current state
-    const derivatives = this.dynamicsModel.calculateStateDerivatives(currentState, time);
-    
-    // Create new state vector for the next time step
-    const newState = new StateVector();
-    
-    // Integrate translational velocities (Euler method)
-    newState.velocity = new VelocityVector(
-      new MetersPerSecond(currentState.velocity.u.value + derivatives.velocity.u.value * timeStep),
-      new MetersPerSecond(currentState.velocity.v.value + derivatives.velocity.v.value * timeStep),
-      new MetersPerSecond(currentState.velocity.w.value + derivatives.velocity.w.value * timeStep)
+    const k1 = derivative(state, time);
+    const k2 = derivative(state.add(k1.scale(dt / 2)), time + dt / 2);
+    const k3 = derivative(state.add(k2.scale(dt / 2)), time + dt / 2);
+    const k4 = derivative(state.add(k3.scale(dt)), time + dt);
+
+    return state.add(
+      k1.add(k2.scale(2)).add(k3.scale(2)).add(k4).scale(dt / 6)
     );
-    
-    // Integrate angular velocities
-    newState.rates = new RotationalVelocities(
-      new RadiansPerSecond(currentState.rates.roll_p.value + derivatives.rates.roll_p.value * timeStep),
-      new RadiansPerSecond(currentState.rates.pitch_q.value + derivatives.rates.pitch_q.value * timeStep),
-      new RadiansPerSecond(currentState.rates.yaw_r.value + derivatives.rates.yaw_r.value * timeStep)
-    );
-    
-    // Integrate position
-    newState.position = new PositionVector(
-      new Meters(currentState.position.x.value + derivatives.position.x.value * timeStep),
-      new Meters(currentState.position.y.value + derivatives.position.y.value * timeStep),
-      new Meters(currentState.position.z.value + derivatives.position.z.value * timeStep)
-    );
-    
-    // Integrate attitude (Euler angles)
-    newState.angles = new EulerAngles(
-      new Radians(currentState.angles.bank_phi.value + derivatives.angles.bank_phi.value * timeStep),
-      new Radians(currentState.angles.elevation_theta.value + derivatives.angles.elevation_theta.value * timeStep),
-      new Radians(currentState.angles.azimuth_psi.value + derivatives.angles.azimuth_psi.value * timeStep)
-    );
-    
-    return newState;
   }
 }
 
-export default Integrator; 
+export default Integrator;
