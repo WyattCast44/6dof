@@ -1,7 +1,8 @@
 import type StateVector from "../numerical/StateVector";
 import type Environment from "../environment/Environment";
 import type AircraftProperties from "../aircraft/AircraftProperties";
-import MSL from "../altitude/MSL";
+import type { ControlInput } from "../aircraft/ControlInput";
+import { neutralControls } from "../aircraft/ControlInput";
 
 /**
  * Computes the derivative of aircraft state (equations of motion).
@@ -44,7 +45,7 @@ class DynamicsModel {
    * @param time - Current simulation time
    * @returns State derivative (rate of change of each state variable)
    */
-  computeDerivative(state: StateVector, time: number): StateVector {
+  computeDerivative(state: StateVector, time: number, controls: ControlInput = neutralControls()): StateVector {
     // Get environmental conditions at current position
     const altitude = state.altitudeMSL; // meters
     const atmosphere =
@@ -92,7 +93,7 @@ class DynamicsModel {
     // =====================================================
     // 2. Velocity derivatives (forces / mass)
     // =====================================================
-    const forces = this.computeForces(state, atmosphere, gravity, wind);
+    const forces = this.computeForces(state, atmosphere, gravity, wind, controls);
     const mass = this.aircraft.mass.value;
 
     // Body-axis accelerations including Coriolis terms
@@ -112,7 +113,7 @@ class DynamicsModel {
     // =====================================================
     // 4. Angular rate derivatives (moments / inertia)
     // =====================================================
-    const moments = this.computeMoments(state, atmosphere, wind);
+    const moments = this.computeMoments(state, atmosphere, wind, controls);
     const angularAccel = this.computeAngularAcceleration(
       angularVelocity,
       moments
@@ -142,13 +143,14 @@ class DynamicsModel {
       temperature: { value: number };
     },
     gravity: { value: number },
-    wind: { speed: { value: number }; direction: { value: number } } | null
+    wind: { speed: { value: number }; direction: { value: number } } | null,
+    controls: ControlInput
   ): { x: number; y: number; z: number } {
     const { attitude, velocity } = state;
     const { phi, theta } = attitude;
 
     // Gravitational force components in body axes
-    const weight = this.aircraft.mass * gravity.value;
+    const weight = this.aircraft.mass.value * gravity.value;
     const gravityX = -weight * Math.sin(theta.value);
     const gravityY = weight * Math.cos(theta.value) * Math.sin(phi.value);
     const gravityZ = weight * Math.cos(theta.value) * Math.cos(phi.value);
@@ -157,7 +159,7 @@ class DynamicsModel {
     const aeroForces = this.computeAerodynamicForces(state, atmosphere, wind);
 
     // Propulsion forces (simplified - assume thrust along body x-axis)
-    const thrust = this.computeThrust(state, atmosphere);
+    const thrust = this.computeThrust(state, atmosphere, controls);
 
     return {
       x: gravityX + aeroForces.x + thrust,
@@ -176,7 +178,7 @@ class DynamicsModel {
   ): { x: number; y: number; z: number } {
     const rho = atmosphere.density.value;
     const V = state.airspeed.value;
-    const S = this.aircraft.wingArea;
+    const S = this.aircraft.wingAreaValue;
 
     // Dynamic pressure
     const qBar = 0.5 * rho * V * V;
@@ -214,11 +216,11 @@ class DynamicsModel {
    */
   private computeThrust(
     state: StateVector,
-    atmosphere: { density: { value: number } }
+    atmosphere: { density: { value: number } },
+    controls: ControlInput
   ): number {
-    // Simplified thrust model - constant thrust for now
-    // In a full model, this would depend on throttle setting, airspeed, altitude
-    return this.aircraft.maxThrust * 0.7; // 70% throttle
+    // Simplified thrust model — proportional to throttle setting
+    return this.aircraft.maxThrustValue * controls.throttle;
   }
 
   /**
@@ -227,13 +229,14 @@ class DynamicsModel {
   private computeMoments(
     state: StateVector,
     atmosphere: { density: { value: number } },
-    wind: { speed: { value: number }; direction: { value: number } } | null
+    wind: { speed: { value: number }; direction: { value: number } } | null,
+    controls: ControlInput
   ): { l: number; m: number; n: number } {
     const rho = atmosphere.density.value;
     const V = state.airspeed.value;
-    const S = this.aircraft.wingArea;
+    const S = this.aircraft.wingAreaValue;
     const b = this.aircraft.wingspan;
-    const c = this.aircraft.meanChord;
+    const c = this.aircraft.meanChordValue;
 
     // Dynamic pressure
     const qBar = 0.5 * rho * V * V;
@@ -261,9 +264,14 @@ class DynamicsModel {
       Cnr, // Yaw moment
     } = this.aircraft.aeroCoefficients;
 
-    const Cl = Clbeta * beta + Clp * pHat + Clr * rHat;
-    const Cm = Cm0 + Cmalpha * alpha + Cmq * qHat;
-    const Cn = Cnbeta * beta + Cnp * pHat + Cnr * rHat;
+    // Control surface effectiveness derivatives
+    const Cm_de = -1.5;   // Elevator → pitching moment
+    const Cl_da = -0.15;  // Aileron → rolling moment
+    const Cn_dr = -0.08;  // Rudder → yawing moment
+
+    const Cl = Clbeta * beta + Clp * pHat + Clr * rHat + Cl_da * controls.aileron;
+    const Cm = Cm0 + Cmalpha * alpha + Cmq * qHat + Cm_de * controls.elevator;
+    const Cn = Cnbeta * beta + Cnp * pHat + Cnr * rHat + Cn_dr * controls.rudder;
 
     return {
       l: qBar * S * b * Cl, // Rolling moment
