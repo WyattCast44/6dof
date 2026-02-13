@@ -1,6 +1,7 @@
-import type StateVector from "../numerical/StateVector";
+import StateVector from "../numerical/StateVector";
 import type Environment from "../environment/Environment";
 import type AircraftProperties from "../aircraft/AircraftProperties";
+import type WindField from "../wind/WindField";
 import type { ControlInput } from "../aircraft/ControlInput";
 import { neutralControls } from "../aircraft/ControlInput";
 
@@ -143,7 +144,7 @@ class DynamicsModel {
       temperature: { value: number };
     },
     gravity: { value: number },
-    wind: { speed: { value: number }; direction: { value: number } } | null,
+    wind: WindField,
     controls: ControlInput
   ): { x: number; y: number; z: number } {
     const { attitude, velocity } = state;
@@ -174,7 +175,7 @@ class DynamicsModel {
   private computeAerodynamicForces(
     state: StateVector,
     atmosphere: { density: { value: number } },
-    wind: { speed: { value: number }; direction: { value: number } } | null
+    _wind: WindField
   ): { x: number; y: number; z: number } {
     const rho = atmosphere.density.value;
     const V = state.airspeed.value;
@@ -229,7 +230,7 @@ class DynamicsModel {
   private computeMoments(
     state: StateVector,
     atmosphere: { density: { value: number } },
-    wind: { speed: { value: number }; direction: { value: number } } | null,
+    _wind: WindField,
     controls: ControlInput
   ): { l: number; m: number; n: number } {
     const rho = atmosphere.density.value;

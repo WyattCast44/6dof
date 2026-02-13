@@ -20,4 +20,3 @@ function neutralControls(): ControlInput {
 
 export { neutralControls };
 export type { ControlInput };
-export default ControlInput;

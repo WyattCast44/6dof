@@ -1,8 +1,10 @@
 import type StateVector from "../numerical/StateVector";
 import type Environment from "../environment/Environment";
 import type AircraftProperties from "../aircraft/AircraftProperties";
-import type Integrator from "../numerical/Integrator";
-import DynamicsModel from "../aircraft/AircraftDynamicsModel";
+import type { ControlInput } from "../aircraft/ControlInput";
+import { neutralControls } from "../aircraft/ControlInput";
+import DynamicsModel from "../flight/DynamicsModel";
+import Integrator from "../numerical/Integrator";
 
 /**
  * Callback for state change events.
@@ -23,8 +25,6 @@ export interface AircraftSimulatorConfig {
   initialState: StateVector;
   /** Environment (gravity, atmosphere, wind) */
   environment: Environment;
-  /** Integrator to use for the simulation (e.g. Euler, Runge-Kutta, etc.) */
-  integrator: Integrator;
   /** Whether to record state history (default: false) */
   recordHistory?: boolean;
   /** Maximum history length (eg: 10,000 states) */
@@ -69,7 +69,7 @@ export interface StateSnapshot {
  * // Connect simulator to simulation
  * simulation.registerCallback('update', (time, dt) => simulator.step(dt));
  * simulation.registerCallback('afterOutput', (time) => {
- *   console.log(simulator.state.toFlightSummary());
+ *   console.log(simulator.getFlightSummary());
  * });
  *
  * simulation.run();
@@ -91,6 +91,7 @@ class AircraftSimulator {
   private _currentState: StateVector;
   private _time: number = 0;
   private _stepCount: number = 0;
+  private _controls: ControlInput = neutralControls();
 
   private readonly aircraft: AircraftProperties;
   private readonly environment: Environment;
@@ -114,11 +115,8 @@ class AircraftSimulator {
     // Create dynamics model for this aircraft/environment combination
     this.dynamicsModel = new DynamicsModel(this.aircraft, this.environment);
 
-    // Create integrator with specified method
-    this.integrator = new Integrator(
-      this.dynamicsModel,
-      config.integrationMethod ?? "rk4"
-    );
+    // Stateless RK4 integrator — no constructor dependencies
+    this.integrator = new Integrator();
 
     // Record initial state if history is enabled
     if (this.recordHistory) {
@@ -130,7 +128,7 @@ class AircraftSimulator {
    * Current aircraft state.
    */
   get state(): StateVector {
-    return this._state;
+    return this._currentState;
   }
 
   /**
@@ -148,6 +146,17 @@ class AircraftSimulator {
   }
 
   /**
+   * Current control inputs.
+   */
+  get controls(): ControlInput {
+    return this._controls;
+  }
+
+  set controls(value: ControlInput) {
+    this._controls = value;
+  }
+
+  /**
    * Recorded state history (if recordHistory is enabled).
    */
   getHistory(): readonly StateSnapshot[] {
@@ -161,10 +170,14 @@ class AircraftSimulator {
    * @returns The new state after integration
    */
   step(dt: number): StateVector {
-    const previousState = this._state;
+    const previousState = this._currentState;
+
+    // Build derivative closure that captures current controls
+    const deriv = (s: StateVector, t: number) =>
+      this.dynamicsModel.computeDerivative(s, t, this._controls);
 
     // Integrate equations of motion
-    this._state = this.integrator.step(this._state, this._time, dt);
+    this._currentState = this.integrator.step(this._currentState, this._time, dt, deriv);
     this._time += dt;
     this._stepCount++;
 
@@ -176,7 +189,7 @@ class AircraftSimulator {
     // Notify listeners
     this.notifyStateChange(previousState);
 
-    return this._state;
+    return this._currentState;
   }
 
   /**
@@ -192,7 +205,7 @@ class AircraftSimulator {
       const stepSize = Math.min(dt, remainingTime);
       this.step(stepSize);
     }
-    return this._state;
+    return this._currentState;
   }
 
   /**
@@ -214,7 +227,7 @@ class AircraftSimulator {
    * @param clearHistory - Whether to clear recorded history (default: true)
    */
   reset(state?: StateVector, clearHistory: boolean = true): void {
-    this._state = state ?? this._state;
+    this._currentState = state ?? this._currentState;
     this._time = 0;
     this._stepCount = 0;
 
@@ -250,7 +263,7 @@ class AircraftSimulator {
   getFlightSummary(): string {
     return (
       `t=${this._time.toFixed(2)}s | ` +
-      this._state.toFlightSummary()
+      this._currentState.toFlightSummary()
     );
   }
 
@@ -260,7 +273,7 @@ class AircraftSimulator {
   private recordState(): void {
     this.history.push({
       time: this._time,
-      state: this._state.clone(),
+      state: this._currentState.clone(),
     });
 
     // Trim history if it exceeds max length
@@ -275,7 +288,7 @@ class AircraftSimulator {
   private notifyStateChange(previousState: StateVector): void {
     for (const callback of this.stateChangeCallbacks) {
       try {
-        callback(this._time, this._state, previousState);
+        callback(this._time, this._currentState, previousState);
       } catch (error) {
         console.error("Error in state change callback:", error);
       }

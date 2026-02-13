@@ -3,11 +3,8 @@ import MSL from "./core/altitude/MSL";
 import Feet from "./core/length/Feet";
 import Knots from "./core/velocity/Knots";
 import Seconds from "./core/time/Seconds";
-import Aircraft from "./core/aircraft/Aircraft";
-import Integrator from "./core/numerical/Integrator";
 import StateVector from "./core/numerical/StateVector";
 import Environment from "./core/environment/Environment";
-import FlightDynamics from "./core/flight/FlightDynamics";
 import SimpleWindModel from "./core/wind/SimpleWindModel";
 import LinearDecayModel from "./core/wind/LinearDecayModel";
 import type GravityModel from "./core/gravity/GravityModel";
@@ -15,17 +12,17 @@ import LightFixedWing from "./core/aircraft/LightFixedWing";
 import FixedTimeSimulation from "./core/sim/FixedTimeSimulation";
 import type AtmosphereModel from "./core/atmosphere/AtmosphereModel";
 import ConstantGravityModel from "./core/gravity/ConstantGravityModel";
-import AircraftDynamicsModel from "./core/aircraft/AircraftDynamicsModel";
 import StandardAtmosphere1976 from "./core/atmosphere/StandardAtmosphere1976";
+import AircraftSimulator from "./core/sim/AircraftSimulator";
 
 // ============================================================================
 // 1. BUILD THE ENVIRONMENT
 // ============================================================================
 
-let gravityModel: GravityModel = new ConstantGravityModel();
-let atmosphereModel: AtmosphereModel = new StandardAtmosphere1976(gravityModel);
+const gravityModel: GravityModel = new ConstantGravityModel();
+const atmosphereModel: AtmosphereModel = new StandardAtmosphere1976(gravityModel);
 
-let windModel = new SimpleWindModel({
+const windModel = new SimpleWindModel({
   atmosphereModel: atmosphereModel,
   decayModel: new LinearDecayModel(),
 });
@@ -53,45 +50,40 @@ for (const { altitude, wind } of windProfile) {
   windModel.addAltitude(altitude, wind);
 }
 
-let environment = new Environment(gravityModel, atmosphereModel, windModel);
+const environment = new Environment(gravityModel, atmosphereModel, windModel);
 
-/**
- * Create the initial state vector of the aircraft
- */
-let stateVector = StateVector.levelFlight({
+// ============================================================================
+// 2. BUILD THE AIRCRAFT SIMULATOR
+// ============================================================================
+
+const initialState = StateVector.levelFlight({
   altitude: new MSL(new Feet(10_000)),
   airspeed: new Knots(100).toMetersPerSecond(),
 });
 
-/**
- * Build the aircraft properties
- */
-let vehicleType = new LightFixedWing();
-
-/**
- * Build the dynamics model
- */
-let dynamicsModel = new AircraftDynamicsModel(vehicleType, environment);
-
-let aircraft = new Aircraft({
-  properties: vehicleType,
-  initialState: stateVector,
+const simulator = new AircraftSimulator({
+  aircraft: new LightFixedWing(),
+  initialState,
+  environment,
 });
 
-let flightDynamics = new FlightDynamics(aircraft, environment);
+// Set throttle for approximately level flight (~70%)
+simulator.controls = { throttle: 0.7, elevator: 0, aileron: 0, rudder: 0 };
 
-/**
- * Create integrator and run simulation
- */
-let integrator = new Integrator(dynamicsModel);
+// ============================================================================
+// 3. CREATE AND WIRE THE SIMULATION LOOP
+// ============================================================================
 
-/**
- * Create the fixed time simulation
- */
 const simulation = new FixedTimeSimulation({
-  timeStep: new Seconds(0.1), // 10 Hz
+  timeStep: new Seconds(0.01),       // 100 Hz integration
   totalTime: Seconds.fromMinutes(1), // 1 minute
-  outputInterval: new Seconds(5), // every 5 seconds
+  outputInterval: new Seconds(5),    // print every 5 seconds
 });
 
+simulation.registerCallback("update", (_time, dt) => simulator.step(dt));
+simulation.registerCallback("afterOutput", () => {
+  console.log(simulator.getFlightSummary());
+});
+
+export { simulator };
 export default simulation;
