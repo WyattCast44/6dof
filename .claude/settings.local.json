@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" diff)",
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" log --oneline -5)",
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" add CLAUDE.md)",
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" commit -m \"$\\(cat <<''EOF''\nAdd CLAUDE.md with project guidance for Claude Code\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:\\\\Users\\\\Wyatt\\\\desktop\\\\projects\\\\6dof\" checkout -b v2)",
+      "Bash(powershell -Command:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest run)",
+      "Bash(yarn build)"
+    ]
+  }
+}
