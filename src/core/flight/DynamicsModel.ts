@@ -8,6 +8,20 @@ import { neutralControls } from "../aircraft/ControlInput";
 /**
  * Computes the derivative of aircraft state (equations of motion).
  *
+ * ## Frame Conventions
+ * - **NED (North-East-Down)** inertial frame for position.
+ * - **Body-fixed (forward-right-down)** frame for velocity and angular rates.
+ * - Euler angles (φ, θ, ψ) rotate from NED to body via 3-2-1 sequence.
+ *
+ * ## References
+ * - Stevens, Lewis & Johnson, *Aircraft Control and Simulation*, 3rd ed.
+ *   - Section 1.3: Coordinate frames and Euler angles
+ *   - Section 1.4: Equations of motion (translational + rotational)
+ *   - Eq. 1.4-4: NED velocity kinematic equations
+ *   - Eq. 1.4-5: Force equations in body frame
+ *   - Eq. 1.4-6: Euler kinematic equations
+ *   - Eq. 1.4-7: Moment equations (Euler's rotational EOM)
+ *
  * The DynamicsModel encapsulates the physics of aircraft flight:
  * - Aerodynamic forces and moments
  * - Gravitational forces
@@ -71,8 +85,10 @@ class DynamicsModel {
 
     // =====================================================
     // 1. Position derivatives (velocity in NED frame)
+    //    Stevens & Lewis 3rd ed., Eq. 1.4-4
     // =====================================================
-    // Transform body velocities to NED frame using rotation matrix
+    // Transform body velocities to NED frame using the 3-2-1
+    // direction cosine matrix (DCM) Cbn = Rz(ψ)·Ry(θ)·Rx(φ)
     // Ṅ (northDot)
     const northDot =
       u.value * cosTheta * cosPsi + // u·(cθ·cψ)
@@ -93,18 +109,28 @@ class DynamicsModel {
 
     // =====================================================
     // 2. Velocity derivatives (forces / mass)
+    //    Stevens & Lewis 3rd ed., Eq. 1.4-5
     // =====================================================
     const forces = this.computeForces(state, atmosphere, gravity, wind, controls);
     const mass = this.aircraft.mass.value;
 
-    // Body-axis accelerations including Coriolis terms
+    // Body-axis accelerations including Coriolis terms.
+    // Cross-coupling from rotating body frame: ω × v
+    // The -(ω×v) terms arise because we express F = m·a in
+    // the non-inertial body frame; expanding dv/dt|inertial
+    // gives dv/dt|body + ω × v.
     const uDot = forces.x / mass - q.value * w.value + r.value * v.value;
     const vDot = forces.y / mass - r.value * u.value + p.value * w.value;
     const wDot = forces.z / mass - p.value * v.value + q.value * u.value;
 
     // =====================================================
     // 3. Attitude derivatives (Euler kinematic equations)
+    //    Stevens & Lewis 3rd ed., Eq. 1.4-6
     // =====================================================
+    // NOTE: Gimbal lock occurs at θ = ±90° (cosθ → 0), causing
+    // the tan(θ) and 1/cos(θ) terms to diverge. For aerobatic or
+    // high-AoA simulation, replace Euler angles with quaternions
+    // (Stevens & Lewis §1.3-18 through §1.3-20).
     const phiDot =
       p.value + sinPhi * tanTheta * q.value + cosPhi * tanTheta * r.value;
     const thetaDot = cosPhi * q.value - sinPhi * r.value;
@@ -113,6 +139,7 @@ class DynamicsModel {
 
     // =====================================================
     // 4. Angular rate derivatives (moments / inertia)
+    //    Stevens & Lewis 3rd ed., Eq. 1.4-7
     // =====================================================
     const moments = this.computeMoments(state, atmosphere, wind, controls);
     const angularAccel = this.computeAngularAcceleration(
@@ -150,7 +177,12 @@ class DynamicsModel {
     const { attitude, velocity } = state;
     const { phi, theta } = attitude;
 
-    // Gravitational force components in body axes
+    // Gravitational force resolved into body axes via DCM.
+    // Gravity acts purely in NED-down (g_ned = [0, 0, mg]),
+    // so body components are just the third column of Cbn:
+    //   Fx_grav = -mg·sin(θ)
+    //   Fy_grav =  mg·cos(θ)·sin(φ)
+    //   Fz_grav =  mg·cos(θ)·cos(φ)
     const weight = this.aircraft.mass.value * gravity.value;
     const gravityX = -weight * Math.sin(theta.value);
     const gravityY = weight * Math.cos(theta.value) * Math.sin(phi.value);
@@ -184,11 +216,16 @@ class DynamicsModel {
     // Dynamic pressure
     const qBar = 0.5 * rho * V * V;
 
-    // Angle of attack and sideslip
+    // Angle of attack and sideslip.
+    // Uses atan2(w, u) for α and atan2(v, u) for β — valid for
+    // small angles (|α| < ~15°, |β| < ~10°). For large angles,
+    // use the full wind-axis formulas with total airspeed V.
     const alpha = state.angleOfAttack;
     const beta = state.sideslipAngle;
 
-    // Aerodynamic coefficients (simplified linear model)
+    // Linear aero model valid for |α| < ~15° (pre-stall regime).
+    // Beyond stall, CL rolls off and CD increases sharply —
+    // a lookup table or nonlinear model is needed.
     const { CL0, CLalpha, CD0, CDalpha, CYbeta } =
       this.aircraft.aeroCoefficients;
 
