@@ -76,21 +76,13 @@ class AircraftProperties {
     this.yawInertiaIzz = properties.yawInertiaIzz;
     this.crossProductInertiaIxz = properties.crossProductInertiaIxz;
     this.liftCoefficientCL0 = properties.liftCoefficientCL0;
-    this.wingArea = properties.wingArea;
-    this.wingSpan = properties.wingSpan;
-    this.meanChord = properties.meanChord;
-    this.rollInertiaIxx = properties.rollInertiaIxx;
-    this.pitchInertiaIyy = properties.pitchInertiaIyy;
-    this.yawInertiaIzz = properties.yawInertiaIzz;
-    this.crossProductInertiaIxz = properties.crossProductInertiaIxz;
-    this.liftCoefficientCL0 = properties.liftCoefficientCL0;
     this.liftCoefficientCLalpha = properties.liftCoefficientCLalpha;
     this.dragCoefficientCD0 = properties.dragCoefficientCD0;
     this.dragCoefficientCDalpha = properties.dragCoefficientCDalpha;
     this.sideForceCoefficientCYbeta = properties.sideForceCoefficientCYbeta;
     this.rollMomentCoefficientClbeta = properties.rollMomentCoefficientClbeta;
     this.rollMomentCoefficientClp = properties.rollMomentCoefficientClp;
-    this.rollMomentCoefficientClr = properties. rollMomentCoefficientClr;
+    this.rollMomentCoefficientClr = properties.rollMomentCoefficientClr;
     this.pitchMomentCoefficientCm0 = properties.pitchMomentCoefficientCm0;
     this.pitchMomentCoefficientCmalpha = properties.pitchMomentCoefficientCmalpha;
     this.pitchMomentCoefficientCmq = properties.pitchMomentCoefficientCmq;
@@ -98,6 +90,39 @@ class AircraftProperties {
     this.yawMomentCoefficientCnp = properties.yawMomentCoefficientCnp;
     this.yawMomentCoefficientCnr = properties.yawMomentCoefficientCnr;
   }
+
+  get aeroCoefficients() {
+    return {
+      CL0: this.liftCoefficientCL0,
+      CLalpha: this.liftCoefficientCLalpha,
+      CD0: this.dragCoefficientCD0,
+      CDalpha: this.dragCoefficientCDalpha,
+      CYbeta: this.sideForceCoefficientCYbeta,
+      Clbeta: this.rollMomentCoefficientClbeta,
+      Clp: this.rollMomentCoefficientClp,
+      Clr: this.rollMomentCoefficientClr,
+      Cm0: this.pitchMomentCoefficientCm0,
+      Cmalpha: this.pitchMomentCoefficientCmalpha,
+      Cmq: this.pitchMomentCoefficientCmq,
+      Cnbeta: this.yawMomentCoefficientCnbeta,
+      Cnp: this.yawMomentCoefficientCnp,
+      Cnr: this.yawMomentCoefficientCnr,
+    };
+  }
+
+  get inertia() {
+    return {
+      Ixx: this.rollInertiaIxx.value,
+      Iyy: this.pitchInertiaIyy.value,
+      Izz: this.yawInertiaIzz.value,
+      Ixz: this.crossProductInertiaIxz.value,
+    };
+  }
+
+  get wingspan(): number { return this.wingSpan.value; }
+  get wingAreaValue(): number { return this.wingArea.value; }
+  get meanChordValue(): number { return this.meanChord.value; }
+  get maxThrustValue(): number { return this.maxThrust.value; }
 }
 
 export default AircraftProperties;
